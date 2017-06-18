@@ -16,7 +16,9 @@ let
       buildInputs = [ nodePackages.node2nix ];
       packagesJson = builtins.toJSON packages;
       packagesFile = builtins.toFile "package.json" packagesJson;
-      src = ./.;
+
+      phases = [ "buildPhase" "installPhase" ];
+
       buildPhase = ''
         mkdir opt
         cd opt
@@ -25,6 +27,7 @@ let
       installPhase = ''
         mkdir $out
         mv ./* $out/
+        echo "built again in $out"
       '';
     }; in
       import "${buildPackagesLock}";

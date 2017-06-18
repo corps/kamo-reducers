@@ -12,6 +12,7 @@ let
       { jsdom = "11.0.0"; }
       { "karma-jsdom-launcher" = "6.1.2"; }
       { "karma-webpack" = "2.0.3"; }
+      { "karma-qunit" = "1.2.1"; }
     ];
   };
 in

@@ -8,18 +8,19 @@ export interface Subscriber<T> {
 
 export class Subject<T> implements Subscriber<T>, Dispatcher<T> {
   constructor() {
-    let listeners = new Registry<(d: T) => void>();
+    let listeners = {} as { [k: number]: Function };
+    let lastId = -1;
     this.dispatch = (data: T) => {
-      let entries = listeners.entries;
-      for (let k in entries) {
-        listeners.entries[k](data);
+      for (let k in listeners) {
+        listeners[k](data);
       }
     };
 
     this.subscribe = (listener: (d: T) => void) => {
-      let id = listeners.register(listener);
+      let id = ++lastId;
+      listeners[id] = listener;
       return () => {
-        listeners.unregister(id);
+        delete listeners[id];
       }
     };
   }
@@ -28,20 +29,6 @@ export class Subject<T> implements Subscriber<T>, Dispatcher<T> {
   subscribe: (listener: (data: T) => void) => () => void;
 }
 
-export class Registry<O> {
-  lastId = -1;
-  entries = {} as { [k: number]: O };
-
-  register(o: O) {
-    let id = ++this.lastId;
-    this.entries[id] = o;
-    return id;
-  }
-
-  unregister(id: number) {
-    delete this.entries[id]
-  }
-}
 export function timeoutSubscriber<T>(timeout: number, v: T): Subscriber<T> {
   return {
     subscribe: (l: (n: T) => void) => {
