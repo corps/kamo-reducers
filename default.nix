@@ -10,6 +10,7 @@ let
       { webpack = "2.6.1"; }
       { karma = "1.7.0"; }
       { jsdom = "11.0.0"; }
+      { qunitjs = "2.3.3"; }
       { "karma-jsdom-launcher" = "6.1.2"; }
       { "karma-webpack" = "2.0.3"; }
       { "karma-qunit" = "1.2.1"; }

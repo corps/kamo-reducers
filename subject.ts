@@ -29,7 +29,7 @@ export class Subject<T> implements Subscriber<T>, Dispatcher<T> {
   subscribe: (listener: (data: T) => void) => () => void;
 }
 
-export function timeoutSubscriber<T>(timeout: number, v: T): Subscriber<T> {
+export function delayedValue<T>(timeout: number, v: T): Subscriber<T> {
   return {
     subscribe: (l: (n: T) => void) => {
       let h = setTimeout(() => {
@@ -68,7 +68,7 @@ export function backoffRepeater<T>(sub: Subscriber<Notification<T>>,): Subscribe
           } else if (n.t === "error") {
             failures++;
             let timeout = Math.pow(Math.min(failures, 5) + 1, 1.5) * ((Math.random() / 2) + 0.25) * 2500;
-            subscription.add(timeoutSubscriber(timeout, null).subscribe(() => {
+            subscription.add(delayedValue(timeout, null).subscribe(() => {
               makeSubscription();
             }));
           }
@@ -131,7 +131,7 @@ export type Notification<T extends {}> =
 export class Subscription {
   private subscriptions = [] as (() => void)[];
 
-  add(cleanup: () => void | Subscription) {
+  add(cleanup: (() => void) | Subscription) {
     if (!cleanup) return cleanup;
 
     if (cleanup instanceof Subscription) {

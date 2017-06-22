@@ -1,18 +1,23 @@
 export = function (config: any) {
   config.set({
     files: [
-      {pattern: 'test/*.test.js', watched: false},
+      {pattern: '*.test.js', watched: false},
+      {pattern: '*/*.test.js', watched: false},
     ],
 
     frameworks: ['qunit'],
-    plugins: ['karma-qunit'],
+    plugins: ['karma-qunit', 'karma-webpack', 'karma-jsdom-launcher'],
 
     preprocessors: {
       // add webpack as preprocessor
-      'test/*.test.js': ['webpack'],
+      '*.test.js': ['webpack'],
     },
 
     webpack: {
+      output: {
+        pathinfo: true,
+        publicPath: '/',
+      },
     },
 
     webpackMiddleware: {
