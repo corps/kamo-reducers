@@ -40,50 +40,6 @@ export function delayedValue<T>(timeout: number, v: T): Subscriber<T> {
   }
 }
 
-export function selfCompletes<T>(sub: Subscriber<Notification<T>>,
-                                 scope = new Subscription()): Subscriber<Notification<T>> {
-  return {
-    subscribe: (l: (n: Notification<T>) => void) => {
-      scope.add(sub.subscribe(n => {
-        if (n.t !== "value") scope.unsubscribe();
-        l(n);
-      }));
-
-      return scope.unsubscribe;
-    }
-  }
-}
-
-export function backoffRepeater<T>(sub: Subscriber<Notification<T>>,): Subscriber<Notification<T>> {
-  return {
-    subscribe: (l: (t: Notification<T>) => void) => {
-      let subscription = new Subscription();
-      let failures = 0;
-
-      let makeSubscription = () => {
-        selfCompletes(sub, subscription).subscribe((n: Notification<T>) => {
-          if (n.t === "done") {
-            failures = 0;
-            makeSubscription();
-          } else if (n.t === "error") {
-            failures++;
-            let timeout = Math.pow(Math.min(failures, 5) + 1, 1.5) * ((Math.random() / 2) + 0.25) * 2500;
-            subscription.add(delayedValue(timeout, null).subscribe(() => {
-              makeSubscription();
-            }));
-          }
-
-          l(n);
-        });
-      };
-
-      makeSubscription();
-
-      return subscription.unsubscribe;
-    }
-  }
-}
-
 export class BufferedSubject<T> implements Subject<T> {
   queue = [] as T[];
   flush$ = new Subject<T>();
@@ -124,9 +80,6 @@ export class BufferedSubject<T> implements Subject<T> {
     return flushed;
   }
 }
-
-export type Notification<T extends {}> =
-  { t: "value", v: T } | { t: "done" } | { t: "error", e: any }
 
 export class Subscription {
   private subscriptions = [] as (() => void)[];

@@ -1,5 +1,4 @@
 import {BufferedSubject, delayedValue, Subject, Subscription} from "./subject";
-declare var QUnit: any;
 
 QUnit.module("subject");
 
