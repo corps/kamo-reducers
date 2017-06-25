@@ -11,6 +11,7 @@ export = function (config: any) {
     preprocessors: {
       // add webpack as preprocessor
       '*.test.js': ['webpack'],
+      '*/*.test.js': ['webpack'],
     },
 
     webpack: {

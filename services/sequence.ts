@@ -1,17 +1,15 @@
-import {GlobalAction, SideEffect} from "../reducers";
+import {GlobalAction, IgnoredSideEffect, SideEffect} from "../reducers";
 import {Subject, Subscriber, Subscription} from "../subject";
 export interface Sequenced {
   effectType: 'sequenced',
   effects: SideEffect[]
 }
 
-export function withSequenced(effect$: Subject<SideEffect>,): Subscriber<GlobalAction> {
+export function withSequenced(effect$: Subject<SideEffect>): Subscriber<GlobalAction> {
   return {
-    subscribe: (listener: (action: GlobalAction) => void) => {
+    subscribe: (dispatch: (action: GlobalAction) => void) => {
       let subscription = new Subscription();
-      let inputEffect$ = effect$ as Subscriber<Sequenced>;
-
-      subscription.add(inputEffect$.subscribe(effect => {
+      subscription.add(effect$.subscribe((effect: Sequenced | IgnoredSideEffect) => {
         switch (effect.effectType) {
           case 'sequenced':
             for (let e of effect.effects) {
