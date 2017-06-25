@@ -1,0 +1,8 @@
+*.test.ts
+*/*.test.ts
+
+*.test.js
+*/*.test.js
+
+npm-env.nix
+qunit.d.ts
