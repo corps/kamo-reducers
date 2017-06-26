@@ -36,12 +36,10 @@ export function loadPage(location: PathLocation): LoadPage {
 
 export const emptyLocation: PathLocation = {pathname: "", hash: "", search: ""};
 
-interface History {
+export function withHistory(history: {
   listen: (listener: (location: PathLocation, action: string) => void) => () => void
   push: (location: PathLocation) => void
-}
-
-export function withHistory(history: History, leaveBaseTag = false) {
+}, leaveBaseTag = false) {
   return (effect$: Subject<SideEffect>): Subscriber<GlobalAction> => {
     return {
       subscribe: (dispatch: (action: GlobalAction) => void) => {

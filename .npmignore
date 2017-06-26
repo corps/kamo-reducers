@@ -6,3 +6,4 @@
 
 npm-env.nix
 qunit.d.ts
+gen-all.sh
