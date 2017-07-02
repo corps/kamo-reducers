@@ -43,7 +43,7 @@ export function reduceSizings<T extends SizeMap>(state: SizeMap, a: SizeUpdate<T
   return {state: state as T};
 }
 
-export function sizeUpdate(name: string, size: Sizing): SizeUpdate<SizeMap> {
+export function sizeUpdate<T extends SizeMap>(name: keyof T, size: Sizing): SizeUpdate<SizeMap> {
   return {
     type: "size-update",
     name, size

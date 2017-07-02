@@ -1,34 +1,27 @@
-import {Sizing} from "./sizing";
-import {IgnoredAction, ReductionWithEffect, SideEffect} from "../reducers";
+import {SizeMap, SizeUpdate, sizeUpdate} from "./sizing";
+import {GlobalAction, SideEffect} from "../reducers";
 import {Subject, Subscriber, Subscription} from "../subject";
 import {debounce} from "./debounce";
-export interface WindowResize {
-  type: "window-resize"
-}
 
-const windowResize: WindowResize = {type: "window-resize"};
+export function withResizeWatcher<S extends SizeMap>(key: keyof S) {
+  return (effect$: Subject<SideEffect>): Subscriber<GlobalAction> => {
+    return {
+      subscribe: (dispatch: (action: SizeUpdate<S>) => void) => {
+        const subscription = new Subscription();
 
-export function reduceWindowResizing(state: Sizing, action: WindowResize | IgnoredAction): ReductionWithEffect<Sizing> {
-  switch (action.type) {
-    case "window-resize":
-      return {state: [window.innerWidth, window.innerHeight]};
-  }
+        let handler = () => {
+          effect$.dispatch(debounce(sizeUpdate<S>(key, [window.innerWidth, window.innerHeight]), "window-resize"));
+        };
 
-  return {state};
-}
+        subscription.add(() => {
+          window.removeEventListener("resize", handler);
+        });
 
-export function withResizeWatcher(effect$: Subject<SideEffect>): Subscriber<WindowResize> {
-  return {
-    subscribe: (dispatch: (action: WindowResize) => void) => {
-      const subscription = new Subscription();
-      const resizeHandler = () => {
-        effect$.dispatch(debounce(windowResize, "window-resize"));
-      };
+        window.addEventListener("resize", handler);
+        handler();
 
-      subscription.add(() => window.removeEventListener("resize", resizeHandler));
-      window.addEventListener("resize", resizeHandler);
-
-      return subscription.unsubscribe;
+        return subscription.unsubscribe;
+      }
     }
   }
 }
