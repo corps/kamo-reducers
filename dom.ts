@@ -6,6 +6,12 @@ export function generateRootElement(): Subscriber<HTMLElement> {
       let subscription = new Subscription();
 
       function createElement() {
+        if (document.readyState !== 'complete') {
+          return;
+        }
+
+        subscription.unsubscribe();
+
         let rootElement = document.createElement("DIV");
         document.body.appendChild(rootElement);
 
@@ -13,8 +19,7 @@ export function generateRootElement(): Subscriber<HTMLElement> {
         dispatch(rootElement);
       }
 
-      let state = document.readyState;
-      if (state === 'complete' || state === 'interactive') {
+      if (document.readyState === 'complete') {
         createElement();
       } else {
         document.addEventListener('DOMContentLoaded', createElement);
