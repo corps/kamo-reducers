@@ -300,16 +300,15 @@ export  function isSideEffect(ae: SideEffect | GlobalAction): ae is SideEffect;
 export  type RenderUpdate<State, Action extends GlobalAction> = ["a", Action] | ["s", State] | ["e", SideEffect] | ["r"] | ["c"];
 export  function renderLoop<State, Action extends GlobalAction>(renderer: Renderer<State, Action>, reducer: Reducer<State>, services: Service[], initialState?: State): Subscriber<RenderUpdate<State, Action>>;
 export interface ReducerChain<S> {
-    state: S;
-    effect?: SideEffect | 0;
-    finish: () => {
+    result: () => {
         state: S;
         effect: SideEffect | 0;
     };
     apply: (reducer: Reducer<S>) => ReducerChain<S>;
 }
-export  function reducerChain<State>(reduction: ReductionWithEffect<State>, action: GlobalAction): ReducerChain<State>;
+export  function reducerChain<State>(state: State, action: GlobalAction, effect?: SideEffect | 0): ReducerChain<State>;
 export  function subReducersFor<State>(): <Key extends keyof State>(key: Key, reducer: Reducer<State[Key]>) => Reducer<State>;
+export  function computedFor<State>(): <Key extends keyof State>(key: Key, compute: (s: State) => State[Key]) => Reducer<State>;
 }
 declare module "kamo-reducers/subject" {
 export interface Dispatcher<T> {

@@ -1,4 +1,5 @@
 import {
+  computedFor,
   GlobalAction, reducerChain, ReducerChain, ReductionWithEffect, renderLoop, RenderUpdate, Service,
   SideEffect, subReducersFor
 } from "./reducers";
@@ -156,10 +157,10 @@ QUnit.test("renderLoop", () => {
 QUnit.test("reducerChain", () => {
   type SimpleTest = { a: number, b: number, c: object };
   const subReducer = subReducersFor<SimpleTest>();
-  let chain:ReducerChain<SimpleTest> = reducerChain<SimpleTest>({
-    state: {a: 0, b: 1, c: {}},
-    effect: {effectType: "a"}
-  }, {type: "1"})
+  const computed = computedFor<SimpleTest>();
+
+  let chain: ReducerChain<SimpleTest> = reducerChain<SimpleTest>(
+    {a: 0, b: 1, c: {}}, {type: "1"}, {effectType: "a"})
     .apply((state, action) => {
       QUnit.assert.deepEqual(action, {type: "1"});
       state = {...state};
@@ -171,18 +172,19 @@ QUnit.test("reducerChain", () => {
       state = {...state};
       state.b++;
       return {state};
-    })
-    .apply(subReducer("a", (state, action) => {
+    }).apply(computed("c", (state: SimpleTest) => {
+      return {thing: 2}
+    })).apply(subReducer("a", (state, action) => {
       QUnit.assert.deepEqual(action, {type: "1"});
       return {state: state + 3, effect: {effectType: "c"}};
     }));
 
-  let oldState = chain.state;
+  let oldState = chain.result().state;
 
   let result = chain.apply(subReducer("c", (state, action) => {
     QUnit.assert.deepEqual(action, {type: "1"});
     return {state};
-  })).finish();
+  })).apply(computed("b", (state: SimpleTest) => state.b)).result();
 
   QUnit.assert.strictEqual(oldState, result.state);
   QUnit.assert.deepEqual(result,
@@ -204,7 +206,7 @@ QUnit.test("reducerChain", () => {
       "state": {
         "a": 4,
         "b": 2,
-        "c": {}
+        "c": { "thing": 2 }
       }
     });
 })

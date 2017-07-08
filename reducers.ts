@@ -102,24 +102,21 @@ function serviceActions(effect$: Subscriber<SideEffect>,
 }
 
 export interface ReducerChain<S> {
-  state: S,
-  effect?: SideEffect | 0,
-  finish: () => { state: S, effect: SideEffect | 0 }
+  result: () => { state: S, effect: SideEffect | 0 }
   apply: (reducer: Reducer<S>) => ReducerChain<S>
 }
 
-export function reducerChain<State>(reduction: ReductionWithEffect<State>, action: GlobalAction): ReducerChain<State> {
+export function reducerChain<State>(state: State, action: GlobalAction, effect: SideEffect | 0 = null): ReducerChain<State> {
   const chainer: ReducerChain<State> = {
-    ...reduction,
     apply: (reducer: Reducer<State>) => {
-      let reduction = reducer(chainer.state, action);
-      chainer.effect = sequence(chainer.effect, reduction.effect);
-      chainer.state = reduction.state;
+      let reduction = reducer(state, action);
+      effect = sequence(effect, reduction.effect);
+      state = reduction.state;
       return chainer;
     },
 
-    finish: () => {
-      return {state: chainer.state, effect: chainer.effect};
+    result: () => {
+      return {state, effect};
     }
   };
 
@@ -135,6 +132,19 @@ export function subReducersFor<State>() {
         state[key] = reduction.state;
       }
       return {state, effect: reduction.effect};
+    }
+  }
+}
+
+export function computedFor<State>() {
+  return function computed<Key extends keyof State>(key: Key, compute: (s: State) => State[Key]): Reducer<State> {
+    return (state: State) => {
+      let next = compute(state);
+      if (next !== state[key]) {
+        state = {...(state as any)};
+        state[key] = next;
+      }
+      return {state};
     }
   }
 }
