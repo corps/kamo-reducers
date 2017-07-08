@@ -22,8 +22,8 @@ export function generateRootElement(): Subscriber<HTMLElement> {
       if (document.readyState === 'complete') {
         createElement();
       } else {
-        document.addEventListener('onreadystatechange', createElement);
-        subscription.add(() => document.removeEventListener('onreadystatechange', createElement));
+        document.addEventListener('readystatechange', createElement);
+        subscription.add(() => document.removeEventListener('readystatechange', createElement));
       }
 
       return subscription.unsubscribe;
