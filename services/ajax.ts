@@ -7,6 +7,7 @@ export interface AjaxConfig {
   query?: { [k: string]: string | number }
   body?: string
   headers?: { [k: string]: string }
+  overrideMimeType?: string
 }
 
 export interface RequestAjax {
@@ -91,6 +92,18 @@ export function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction>
             let xhr = requests[normalizedName] = new XMLHttpRequest();
 
             xhr.withCredentials = false;
+
+            if (effect.config.overrideMimeType) {
+              xhr.overrideMimeType(effect.config.overrideMimeType);
+            }
+
+            xhr.onerror = function () {
+              if (requests[normalizedName] === xhr) {
+                delete requests[normalizedName];
+              }
+
+              dispatch(completeRequest(effect, 0, "", ""));
+            };
 
             xhr.onload = function () {
               if (requests[normalizedName] === xhr) {

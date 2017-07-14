@@ -61,6 +61,7 @@ export interface AjaxConfig {
     headers?: {
         [k: string]: string;
     };
+    overrideMimeType?: string;
 }
 export interface RequestAjax {
     effectType: "request-ajax";
