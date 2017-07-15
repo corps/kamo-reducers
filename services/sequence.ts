@@ -1,4 +1,4 @@
-import {GlobalAction, IgnoredSideEffect, SideEffect} from "../reducers";
+import {GlobalAction, IgnoredSideEffect, ReductionWithEffect, SideEffect} from "../reducers";
 import {Subject, Subscriber, Subscription} from "../subject";
 export interface Sequenced {
   effectType: 'sequenced',
@@ -35,3 +35,9 @@ export function sequence(first: SideEffect | 0, next: SideEffect | 0): SideEffec
   return {effectType: 'sequenced', effects: [first, next]} as Sequenced;
 }
 
+
+export function sequenceReduction<State>(effect: SideEffect | 0, reduction: ReductionWithEffect<State>): ReductionWithEffect<State> {
+  effect = sequence(effect, reduction.effect);
+
+  return {state: reduction.state, effect};
+}

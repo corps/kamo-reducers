@@ -193,7 +193,7 @@ export  function scrollTo(targetSelector: string): ScrollTo;
 export  function withScrollTo(effect$: Subscriber<ScrollTo>): Subscriber<GlobalAction>;
 }
 declare module "kamo-reducers/services/sequence" {
-import { GlobalAction, SideEffect } from "kamo-reducers/reducers";
+import { GlobalAction, ReductionWithEffect, SideEffect } from "kamo-reducers/reducers";
 import { Subject, Subscriber } from "kamo-reducers/subject";
 export interface Sequenced {
     effectType: 'sequenced';
@@ -201,6 +201,7 @@ export interface Sequenced {
 }
 export  function withSequenced(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
 export  function sequence(first: SideEffect | 0, next: SideEffect | 0): SideEffect;
+export  function sequenceReduction<State>(effect: SideEffect | 0, reduction: ReductionWithEffect<State>): ReductionWithEffect<State>;
 }
 declare module "kamo-reducers/services/sequence" {
 }
