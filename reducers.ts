@@ -8,7 +8,7 @@ export type IgnoredSideEffect = { effectType: '' };
 export type IgnoredAction = { type: '' };
 
 export type Renderer<State, Action extends GlobalAction> =
-  (state: State | 0, dispatchAction: (a: Action) => void, next: () => void) => void;
+    (state: State | 0, dispatchAction: (a: Action) => void, next: () => void) => void;
 
 export type Service = (sideEffect$: Subject<SideEffect>) => Subscriber<GlobalAction>;
 
@@ -17,11 +17,11 @@ export function isSideEffect(ae: SideEffect | GlobalAction): ae is SideEffect {
 }
 
 export type RenderUpdate<State, Action extends GlobalAction> =
-  ["a", Action] |
-  ["s", State] |
-  ["e", SideEffect] |
-  ["r"] |
-  ["c"];
+    ["a", Action] |
+    ["s", State] |
+    ["e", SideEffect] |
+    ["r"] |
+    ["c"];
 
 const renderStart = ["r"] as ["r"];
 const renderComplete = ["c"] as ["c"];
@@ -61,8 +61,8 @@ export function renderLoop<State, Action extends GlobalAction>(renderer: Rendere
   }
 }
 
-function serviceActions(effect$: Subscriber<SideEffect>,
-                        services: Service[]): Subscriber<GlobalAction> {
+export function serviceActions(effect$: Subscriber<SideEffect>,
+                               services: Service[]): Subscriber<GlobalAction> {
   return {
     subscribe: (dispatch: (a: GlobalAction) => void) => {
       let sideEffect$ = new Subject<SideEffect>();
@@ -106,7 +106,8 @@ export interface ReducerChain<S> {
   apply: (reducer: Reducer<S>) => ReducerChain<S>
 }
 
-export function reducerChain<State>(state: State, action: GlobalAction, effect: SideEffect | 0 = null): ReducerChain<State> {
+export function reducerChain<State>(state: State, action: GlobalAction,
+                                    effect: SideEffect | 0 = null): ReducerChain<State> {
   const chainer: ReducerChain<State> = {
     apply: (reducer: Reducer<State>) => {
       let reduction = reducer(state, action);

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 mv qunit.d.ts qunit
 rm all.d.ts

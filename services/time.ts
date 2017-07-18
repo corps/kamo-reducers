@@ -41,7 +41,7 @@ export function reduceTime<T extends TimeState>(state: T, action: UpdateTime | I
 }
 
 export function withTime(start = Date.now()) {
-  return (effect$: Subject<SideEffect>): Subscriber<UpdateTime> => {
+  return (effect$: Subject<SideEffect>): Subscriber<GlobalAction> => {
     return {
       subscribe: (dispatch: (action: GlobalAction) => void) => {
         const subscription = new Subscription();
