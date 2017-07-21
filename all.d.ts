@@ -417,7 +417,7 @@ export  class Subscription {
 }
 }
 declare module "kamo-reducers/tester" {
-import { GlobalAction, Reducer, SideEffect } from "kamo-reducers/reducers";
+import { GlobalAction, Reducer, Service, SideEffect } from "kamo-reducers/reducers";
 import { BufferedSubject, Subject, Subscription } from "kamo-reducers/subject";
 export  class Tester<State> {
     state: State;
@@ -427,7 +427,7 @@ export  class Tester<State> {
     queued$: BufferedSubject<SideEffect | GlobalAction>;
     reducer: Reducer<State>;
     update$: Subject<[GlobalAction, State]>;
-    private services;
+    services: Service[];
     private queuedEffect$;
     private queuedAction$;
     private flushedDispatch;

@@ -19,7 +19,8 @@ export class Tester<State> {
   reducer: Reducer<State>;
   update$ = new Subject<[GlobalAction, State]>();
 
-  private services = [] as Service[];
+  services = [] as Service[];
+  
   private queuedEffect$: Subject<SideEffect> = {
     dispatch: this.queued$.dispatch,
     subscribe: (listener: (effect: SideEffect) => void) => {
