@@ -10,14 +10,14 @@ QUnit.test("withSequenced", () => {
   let unsubscribe = withSequenced(effect$).subscribe(action$.dispatch);
 
   let sequenced: Sequenced = {effectType: "sequenced", effects: [{effectType: "a"}, null, {effectType: "b"}]};
-  effect$.flush$.dispatch(sequenced);
+  effect$.executeFlush(sequenced);
 
   QUnit.assert.deepEqual(effect$.queue, [{effectType: "a"}, {effectType: "b"}]);
   effect$.flushUntilEmpty();
 
   unsubscribe();
 
-  effect$.flush$.dispatch(sequenced);
+  effect$.executeFlush(sequenced);
   QUnit.assert.deepEqual(effect$.queue, []);
 });
 

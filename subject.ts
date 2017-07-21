@@ -86,7 +86,7 @@ export class BufferedSubject<T> implements Subject<T> {
     return flushed;
   };
 
-  private executeFlush(t: T) {
+  executeFlush(t: T) {
     this.stack.push(t);
     this.flush$.dispatch(t);
     this.stack.pop();
