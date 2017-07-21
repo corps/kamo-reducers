@@ -1,27 +1,25 @@
-export class Tester {
-  constructor() {
+import {GlobalAction, Reducer, Service, serviceActions, SideEffect} from "./reducers";
+import {BufferedSubject, Subject, Subscription} from "./subject";
+import {trackMutations} from "./track-mutations";
+import {isSideEffect} from "kamo-reducers/reducers";
+import {Sequenced} from "./services/sequence";
+
+export class Tester<State> {
+  constructor(reducer: Reducer<State>, public state: State) {
+    this.reducer = trackMutations(reducer);
   }
 
-  start(autoFlushQueue = false) {
+  start() {
     this.subscription.add(this.queuedAction$.subscribe(this.flushedDispatch));
-    this.subscription.add(serviceActions(autoFlushQueue ? new Subject() : this.queuedEffect$, this.services)
-        .subscribe(autoFlushQueue ? this.flushedDispatch : this.queuedAction$.dispatch));
+    this.subscription.add(serviceActions(this.queuedEffect$, this.services).subscribe(this.queuedAction$.dispatch));
   }
-
-  serviceConfig = (function () {
-    let config = {...newServiceConfig};
-    config.storage = new MemoryStorage() as any;
-    return config;
-  })();
 
   subscription = new Subscription();
-  state = initialState;
   queued$ = new BufferedSubject<GlobalAction | SideEffect>();
-  reducer = trackMutations(reducer);
-
+  reducer: Reducer<State>;
   update$ = new Subject<[GlobalAction, State]>();
 
-  private services = getServices(this.serviceConfig);
+  private services = [] as Service[];
   private queuedEffect$: Subject<SideEffect> = {
     dispatch: this.queued$.dispatch,
     subscribe: (listener: (effect: SideEffect) => void) => {
