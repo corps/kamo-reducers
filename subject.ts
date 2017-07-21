@@ -42,10 +42,16 @@ export function delayedValue<T>(timeout: number, v: T): Subscriber<T> {
 
 export class BufferedSubject<T> implements Subject<T> {
   queue = [] as T[];
-  flush$ = new Subject<T>();
+  stack = [] as T[];
+  buffering = true;
+
+  private flush$ = new Subject<T>();
 
   dispatch = (t: T) => {
     this.queue.push(t);
+    if (!this.buffering) {
+      this.flushUntilEmpty();
+    }
   };
 
   subscribe = (dispatch: (t: T) => void) => {
@@ -54,7 +60,7 @@ export class BufferedSubject<T> implements Subject<T> {
 
   flushNext = () => {
     const next = this.queue.shift();
-    this.flush$.dispatch(next);
+    this.executeFlush(next);
     return next;
   };
 
@@ -63,7 +69,7 @@ export class BufferedSubject<T> implements Subject<T> {
     this.queue = [];
 
     while (queue.length) {
-      this.flush$.dispatch(queue.shift());
+      this.executeFlush(queue.shift());
     }
 
     return queue;
@@ -74,10 +80,16 @@ export class BufferedSubject<T> implements Subject<T> {
     while (this.queue.length) {
       let next = this.queue.shift();
       flushed.push(next);
-      this.flush$.dispatch(next);
+      this.executeFlush(next);
     }
 
     return flushed;
+  };
+
+  executeFlush(t: T) {
+    this.stack.push(t);
+    this.flush$.dispatch(t);
+    this.stack.pop();
   }
 }
 
@@ -89,7 +101,8 @@ export class Subscription {
 
     if (cleanup instanceof Subscription) {
       this.subscriptions.push(cleanup.unsubscribe);
-    } else {
+    }
+    else {
       this.subscriptions.push(cleanup)
     }
 

@@ -54,6 +54,7 @@ export function withDebounce(effect$: Subject<SideEffect>): Subscriber<GlobalAct
           case "flush-debounce":
             var timeout = timeouts[e.name];
             if (timeout) {
+              timeouts[e.name] = null;
               clearTimeout(timeout.handle);
               dispatch(timeout.action);
             }
@@ -62,6 +63,7 @@ export function withDebounce(effect$: Subject<SideEffect>): Subscriber<GlobalAct
           case "clear-debounce":
             var timeout = timeouts[e.name];
             if (timeout) {
+              timeouts[e.name] = null;
               clearTimeout(timeout.handle);
             }
             break;
@@ -69,11 +71,12 @@ export function withDebounce(effect$: Subject<SideEffect>): Subscriber<GlobalAct
           case "debounce":
             var timeout = timeouts[e.name];
             if (timeout) {
+              timeouts[e.name] = null;
               clearTimeout(timeout.handle);
             }
 
             const run = () => {
-              delete timeouts[e.name];
+              timeouts[e.name] = null;
               dispatch(e.action);
             };
 

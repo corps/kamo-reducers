@@ -100,6 +100,28 @@ export  function encodeQueryParts(parts: {
     [k: string]: string;
 };
 }
+declare module "kamo-reducers/services/animation-frame" {
+import { GlobalAction, SideEffect } from "kamo-reducers/reducers";
+import { Subject, Subscriber } from "kamo-reducers/subject";
+export interface AnimationRequest {
+    effectType: "animation-request";
+    action: GlobalAction;
+    name: string;
+}
+export interface ClearAnimation {
+    effectType: "clear-animation";
+    name: string;
+}
+export interface AnimationCleared {
+    type: "animation-cleared";
+    name: string;
+}
+export  type AnimationEffect = AnimationRequest | ClearAnimation;
+export  function clearAnimation(name: string): ClearAnimation;
+export  function animationCleared(name: string): AnimationCleared;
+export  function animationRequest(action: GlobalAction, name: string): AnimationRequest;
+export  function withiAnimationFrames(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
+}
 declare module "kamo-reducers/services/debounce" {
 import { GlobalAction, SideEffect } from "kamo-reducers/reducers";
 import { Subject, Subscriber } from "kamo-reducers/subject";
@@ -122,6 +144,35 @@ export  function flushDebounce(name: string): FlushDebounce;
 export  function clearDebounce(name: string): ClearDebounce;
 export  function debounce(action: GlobalAction, name: string, debounceMs?: number): Debounce;
 export  function withDebounce(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
+}
+declare module "kamo-reducers/services/local-storage" {
+export interface StoreLocalData {
+    effectType: "store-local-data";
+    data: object;
+    key: string;
+}
+export interface RequestLocalData {
+    effectType: "request-local-data";
+    key: string;
+}
+export interface LoadLocalData {
+    type: "load-local-data";
+    key: string;
+    data: object | 0;
+}
+export interface ClearLocalData {
+    effectType: "clear-local-data";
+}
+export  const clearLocalData: ClearLocalData;
+export  function storeLocalData(key: string, data: object): StoreLocalData;
+export  function loadLocalData(key: string, data: object): LoadLocalData;
+export  function requestLocalData(key: string): RequestLocalData;
+export interface SimpleStringStorage {
+    clear(): void;
+    getItem(key: string): string;
+    setItem(key: string, value: string): void;
+}
+export  function withStorage(storage?: SimpleStringStorage, inputFilter?: (s: any) => string, outputFiler?: (s: string | 0) => any): (effect$: any) => any;
 }
 declare module "kamo-reducers/services/navigation" {
 import { Subject, Subscriber } from "kamo-reducers/subject";
@@ -156,8 +207,18 @@ export interface Visit {
     noHistory?: boolean;
     location: PathLocation;
 }
+export  function visit(location: PathLocation, noHistory?: boolean): Visit;
+export interface RequestBrowseToAppLocation {
+    effectType: "request-browse-to-app-location";
+    location: PathLocation;
+}
+export  function requestBrowseToAppLocation(location: PathLocation): RequestBrowseToAppLocation;
 export  type NavigationAction = Visit | LoadPage;
 export  function navigationReducer<State extends Object>(route: (state: State, pathLocation: PathLocation) => ReductionWithEffect<State>): (state: State, action: NavigationAction) => ReductionWithEffect<State>;
+export  function visitDispatcher(dispatch: (a: Visit) => void): (event: {
+    target: HTMLElement;
+    preventDefault: () => void;
+}) => void;
 }
 declare module "kamo-reducers/services/notification" {
 import { Subject, Subscriber } from "kamo-reducers/subject";
@@ -166,14 +227,14 @@ export interface ShowBrowserNotification {
     effectType: "show-browser-notification";
     title: string;
     body: string;
-    name: string;
+    name: string[];
 }
-export  function showBrowserNotification(name: string, title: string, body: string): ShowBrowserNotification;
+export  function showBrowserNotification(name: string[], title: string, body: string): ShowBrowserNotification;
 export interface BrowserNotificationClicked {
     type: "browser-notification-clicked";
-    name: string;
+    name: string[];
 }
-export  function browserNotificationClicked(name: string): BrowserNotificationClicked;
+export  function browserNotificationClicked(name: string[]): BrowserNotificationClicked;
 export  function withBrowserNotifications(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
 }
 declare module "kamo-reducers/services/resize" {
@@ -277,6 +338,17 @@ export  function memoizeByEachArgument<T extends Function>(t: T): T;
 export  function memoizeByAllProperties<T extends Function>(t: T): T;
 export  function memoizeBySomeProperties<A, R>(a: A, f: (a: A) => R): (a: A) => R;
 }
+declare module "kamo-reducers/memory-storage" {
+import { SimpleStringStorage } from "kamo-reducers/services/local-storage";
+export  class MemoryStorage implements SimpleStringStorage {
+    values: {
+        [k: string]: string;
+    };
+    clear(): void;
+    getItem(key: string): string | any;
+    setItem(key: string, data: string): void;
+}
+}
 declare module "kamo-reducers/reducers" {
 import { Subject, Subscriber } from "kamo-reducers/subject";
 export  type GlobalAction = {
@@ -328,17 +400,40 @@ export  class Subject<T> implements Subscriber<T>, Dispatcher<T> {
 export  function delayedValue<T>(timeout: number, v: T): Subscriber<T>;
 export  class BufferedSubject<T> implements Subject<T> {
     queue: T[];
-    flush$: Subject<T>;
+    stack: T[];
+    buffering: boolean;
+    private flush$;
     dispatch: (t: T) => void;
     subscribe: (dispatch: (t: T) => void) => () => void;
     flushNext: () => T;
     flushCurrent: () => T[];
     flushUntilEmpty: () => T[];
+    executeFlush(t: T): void;
 }
 export  class Subscription {
     private subscriptions;
     add(cleanup: (() => void) | Subscription): Subscription | (() => void);
     unsubscribe: () => void;
+}
+}
+declare module "kamo-reducers/tester" {
+import { GlobalAction, Reducer, Service, SideEffect } from "kamo-reducers/reducers";
+import { BufferedSubject, Subject, Subscription } from "kamo-reducers/subject";
+export  class Tester<State> {
+    state: State;
+    constructor(reducer: Reducer<State>, state: State);
+    start(): void;
+    subscription: Subscription;
+    queued$: BufferedSubject<SideEffect | GlobalAction>;
+    reducer: Reducer<State>;
+    update$: Subject<[GlobalAction, State]>;
+    services: Service[];
+    private queuedEffect$;
+    private queuedAction$;
+    private flushedDispatch;
+    dispatch: (action: GlobalAction, clearQueue?: boolean) => void;
+    findEffects(type: string, ea?: (SideEffect | GlobalAction)[]): SideEffect[];
+    findActions(type: string, ea?: (SideEffect | GlobalAction)[]): GlobalAction[];
 }
 }
 declare module "kamo-reducers/track-mutations" {

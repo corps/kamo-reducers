@@ -53,10 +53,17 @@ export function withHistory(history: {
           }
         }));
 
-        subscription.add(effect$.subscribe((effect: HistoryPush | SetBaseHref | IgnoredSideEffect) => {
+        subscription.add(effect$.subscribe((effect: HistoryPush | SetBaseHref | RequestBrowseToAppLocation | IgnoredSideEffect) => {
           switch (effect.effectType) {
             case 'history-push':
               history.push(effect.location);
+              break;
+
+            case 'request-browse-to-app-location':
+              let basePath = inferBasePath();
+              if (basePath[basePath.length - 1] !== "/") basePath += "/";
+              let location = {...effect.location, pathname: basePath + effect.location.pathname};
+              dispatch(visit(location));
               break;
 
             case 'set-base-href':
@@ -84,6 +91,26 @@ export interface Visit {
   type: 'visit',
   noHistory?: boolean,
   location: PathLocation
+}
+
+export function visit(location: PathLocation, noHistory = false): Visit {
+  return {
+    type: 'visit',
+    location,
+    noHistory
+  }
+}
+
+export interface RequestBrowseToAppLocation {
+  effectType: "request-browse-to-app-location",
+  location: PathLocation
+}
+
+export function requestBrowseToAppLocation(location: PathLocation): RequestBrowseToAppLocation {
+  return {
+    effectType: "request-browse-to-app-location",
+    location
+  }
 }
 
 export type NavigationAction = Visit | LoadPage;
@@ -134,4 +161,18 @@ function chopOffBasePath(pathname: string) {
 function locationFromBasePath(location: { pathname: string, search: string, hash: string }): PathLocation {
   const {pathname, search, hash} = location;
   return {pathname: chopOffBasePath(pathname), search, hash};
+}
+
+export function visitDispatcher(dispatch: (a: Visit) => void) {
+  return ((event: { target: HTMLElement, preventDefault: () => void }) => {
+    let tag = (event.target as HTMLAnchorElement);
+
+    while (tag.parentElement != null && tag.tagName != "A") {
+      tag = tag.parentElement as HTMLAnchorElement;
+    }
+
+    let {pathname, search, hash} = tag;
+    dispatch(visit({pathname, search, hash}));
+    event.preventDefault();
+  })
 }

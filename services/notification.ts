@@ -4,10 +4,10 @@ export interface ShowBrowserNotification {
   effectType: "show-browser-notification"
   title: string
   body: string
-  name: string
+  name: string[]
 }
 
-export function showBrowserNotification(name: string, title: string, body: string): ShowBrowserNotification {
+export function showBrowserNotification(name: string[], title: string, body: string): ShowBrowserNotification {
   return {
     effectType: "show-browser-notification",
     name,
@@ -16,13 +16,12 @@ export function showBrowserNotification(name: string, title: string, body: strin
   }
 }
 
-
 export interface BrowserNotificationClicked {
   type: "browser-notification-clicked"
-  name: string
+  name: string[]
 }
 
-export function browserNotificationClicked(name: string): BrowserNotificationClicked {
+export function browserNotificationClicked(name: string[]): BrowserNotificationClicked {
   return {
     type: "browser-notification-clicked",
     name
@@ -58,8 +57,10 @@ export function withBrowserNotifications(effect$: Subject<SideEffect>): Subscrib
             if (permissionGranted) {
               let notification = new Notification(effect.title, {body: effect.body});
               notification.onclick = () => {
+                window.focus();
+                notification.close();
                 dispatch(browserNotificationClicked(effect.name));
-              }
+              };
               notifications.push(notification);
             }
             break;
