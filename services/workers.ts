@@ -1,9 +1,10 @@
-import {Subject, Subscriber, Subscription} from "../subject";
+import {Subject, Subscription} from "../subject";
 import {GlobalAction, IgnoredSideEffect, SideEffect} from "../reducers";
 
 export interface RequestWork {
   effectType: "request-work"
-  work: string
+  workF: string,
+  argument: any,
   name: string[]
 }
 
@@ -18,17 +19,29 @@ export interface WorkComplete {
   name: string[]
 }
 
-export function requestWork(name: string[], f: Function): RequestWork {
+export interface WorkCanceled {
+  type: "work-canceled",
+  name: string[]
+}
+
+export function requestWork<A>(name: string[], f: (a: A) => any, argument: A): RequestWork {
   return {
     effectType: "request-work",
-    name,
-    work: functionContents(f),
+    name, argument,
+    workF: asUnnamedFunction(f),
   }
 }
 
 export function cancelWork(name: string[]): CancelWork {
   return {
     effectType: "cancel-work",
+    name
+  }
+}
+
+export function workCanceled(nane: string[]): WorkCanceled {
+  return {
+    type: "work-canceled",
     name
   }
 }
@@ -54,16 +67,64 @@ export function withWorkers(namespace: { [k: string]: Function }) {
   let url = window.URL.createObjectURL(blob);
 
   return (effect$: Subject<SideEffect>) => {
-    let subscription = new Subscription();
-    let worker = new Worker(url);
+    return {
+      subscribe: (dispatch: (action: GlobalAction) => void) => {
+        let subscription = new Subscription();
+        let workers = {} as { [k: string]: Worker | 0 };
 
-    subscription.add(() => {
-      worker.terminate();
-    });
+        // let worker = new Worker(url);
+        subscription.add(() => {
+          for (let k in workers) {
+            let worker = workers[k];
+            if (worker) {
+              worker.terminate();
+            }
+          }
+        });
 
-    subscription.add(effect$.subscribe((effect: RequestWork | CancelWork | IgnoredSideEffect) => {
+        subscription.add(effect$.subscribe((effect: RequestWork | CancelWork | IgnoredSideEffect) => {
+          let normalizedName: string;
 
-    }));
+          switch (effect.effectType) {
+            case "request-work":
+              normalizedName = effect.name.join("-");
+              var worker = workers[normalizedName];
+              if (worker) {
+                worker.terminate();
+                workers[normalizedName] = null;
+                dispatch(workCanceled(effect.name))
+              }
+
+              worker = workers[normalizedName] = new Worker(url);
+              worker.onerror = (e) => {
+                console.error(e.message);
+              };
+
+              worker.onmessage = (e) => {
+                let worker = workers[normalizedName];
+                if (worker) worker.terminate();
+                workers[normalizedName] = null;
+                dispatch(workComplete(effect.name, e.data));
+              };
+
+              worker.postMessage([effect.workF, effect.argument])
+              break;
+
+            case "cancel-work":
+              normalizedName = effect.name.join("-");
+              var worker = workers[normalizedName];
+              if (worker) {
+                worker.terminate();
+                workers[normalizedName] = null;
+                dispatch(workCanceled(effect.name))
+              }
+              break;
+          }
+        }));
+
+        return subscription.unsubscribe;
+      }
+    }
   }
 }
 
