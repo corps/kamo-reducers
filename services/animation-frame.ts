@@ -1,5 +1,5 @@
-import {GlobalAction, SideEffect, IgnoredSideEffect} from "kamo-reducers/reducers";
-import {Subject, Subscriber, Subscription} from "kamo-reducers/subject";
+import {GlobalAction, SideEffect, IgnoredSideEffect} from "../reducers";
+import {Subject, Subscriber, Subscription} from "../subject";
 export interface AnimationRequest {
   effectType: "animation-request"
   action: GlobalAction

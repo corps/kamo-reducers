@@ -1,5 +1,6 @@
-import {SimpleStringStorage} from "./services/local-storage";
-export class MemoryStorage implements SimpleStringStorage {
+import {SimpleSynchronousStorage} from "./services/synchronous-storage";
+
+export class MemoryStorage implements SimpleSynchronousStorage {
   values = {} as { [k: string]: string };
 
   clear(): void {
