@@ -68,6 +68,11 @@ export function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction>
       const subscription = new Subscription();
       let requests = {} as { [k: string]: XMLHttpRequest };
       let existing: XMLHttpRequest;
+      let canceled = false;
+
+      subscription.add(() => {
+        canceled = true;
+      });
 
       subscription.add(effect$.subscribe((effect: RequestAjax | AbortRequest | IgnoredSideEffect) => {
         let normalizedName: string;
@@ -88,6 +93,8 @@ export function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction>
             if (requests[normalizedName]) {
               effect$.dispatch(abortRequest(effect.name));
             }
+
+            if (canceled) break;
 
             let xhr = requests[normalizedName] = new XMLHttpRequest();
 

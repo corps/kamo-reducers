@@ -85,7 +85,7 @@ function worker() {
   };
 
   function reply(message: LoadedMessage) {
-    self.postMessage(message, "*");
+    (self.postMessage as any)(message);
   }
 
   function runNext() {
@@ -113,7 +113,7 @@ function worker() {
         var {key, version} = next;
 
         req.onsuccess = (e) => {
-          reply({key, version, value: req.result.value})
+          reply({key, version, value: req.result && req.result.value})
         };
 
         req.onerror = (e) => {
@@ -133,11 +133,12 @@ function worker() {
         };
 
         tx.oncomplete = finishRun;
+        break;
     }
   }
 
   function finishRun() {
-    queue.unshift();
+    queue.shift();
     runNext();
   }
 }

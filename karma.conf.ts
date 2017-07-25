@@ -6,7 +6,7 @@ export = function (config: any) {
     ],
 
     frameworks: ['qunit'],
-    browsers: ['chrome'],
+    browsers: ['Chrome'],
     plugins: ['karma-qunit', 'karma-webpack', 'karma-chrome-launcher'],
 
     preprocessors: {
