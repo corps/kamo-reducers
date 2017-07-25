@@ -1,7 +1,7 @@
 import {GlobalAction, Reducer, Service, serviceActions, SideEffect} from "./reducers";
 import {BufferedSubject, Subject, Subscription} from "./subject";
 import {trackMutations} from "./track-mutations";
-import {isSideEffect} from "kamo-reducers/reducers";
+import {isSideEffect} from "./reducers";
 import {Sequenced} from "./services/sequence";
 
 export class Tester<State> {

@@ -1,10 +1,10 @@
 {
   "name": "kamo-reducers",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "tsc && karma start karma.conf.js --browsers jsdom --single-run"
+    "test": "tsc && karma start karma.conf.js"
   },
   "author": "",
   "license": "MIT"

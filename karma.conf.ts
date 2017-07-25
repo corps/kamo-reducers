@@ -6,7 +6,8 @@ export = function (config: any) {
     ],
 
     frameworks: ['qunit'],
-    plugins: ['karma-qunit', 'karma-webpack', 'karma-jsdom-launcher'],
+    browsers: ['Chrome'],
+    plugins: ['karma-qunit', 'karma-webpack', 'karma-chrome-launcher'],
 
     preprocessors: {
       // add webpack as preprocessor

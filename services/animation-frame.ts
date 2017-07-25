@@ -1,5 +1,5 @@
-import {GlobalAction, SideEffect, IgnoredSideEffect} from "kamo-reducers/reducers";
-import {Subject, Subscriber, Subscription} from "kamo-reducers/subject";
+import {GlobalAction, SideEffect, IgnoredSideEffect} from "../reducers";
+import {Subject, Subscriber, Subscription} from "../subject";
 export interface AnimationRequest {
   effectType: "animation-request"
   action: GlobalAction
@@ -48,6 +48,10 @@ export function withiAnimationFrames(effect$: Subject<SideEffect>): Subscriber<G
         }
       };
 
+      let canceled = false;
+
+      subscription.add(() => canceled = true);
+
       subscription.add(effect$.subscribe((e: AnimationEffect | IgnoredSideEffect) => {
         switch (e.effectType) {
           case "clear-animation":
@@ -66,6 +70,8 @@ export function withiAnimationFrames(effect$: Subject<SideEffect>): Subscriber<G
               cancelAnimationFrame(handle.handle);
               dispatch(animationCleared(name));
             }
+
+            if (canceled) break;
 
             const run = () => {
               handles[e.name] = null;

@@ -49,6 +49,10 @@ export function withDebounce(effect$: Subject<SideEffect>): Subscriber<GlobalAct
         }
       };
 
+      let canceled = false;
+
+      subscription.add(() => canceled = true);
+
       subscription.add(effect$.subscribe((e: DebounceEffect | IgnoredSideEffect) => {
         switch (e.effectType) {
           case "flush-debounce":
