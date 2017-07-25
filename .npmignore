@@ -4,6 +4,16 @@
 *.test.js
 */*.test.js
 
+*/*.ts
+*.ts
+!all.d.ts
+
 npm-env.nix
 qunit.d.ts
 gen-all.sh
+
+karma.conf.js
+tsconfig.json
+
+.idea/
+*.nix

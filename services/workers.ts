@@ -86,7 +86,7 @@ export function withFallbackWorkers(...namespaces: { [k: string]: Function }[]) 
     return {
       subscribe: (dispatch: (action: GlobalAction) => void) => {
         let subscription = new Subscription();
-        let handles = {} as { [k: string]: number };
+        let handles = {} as { [k: string]: any };
 
         let shutdown = false;
 
