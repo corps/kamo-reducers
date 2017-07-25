@@ -327,15 +327,12 @@ export  function updateTime(absoluteTime: number, relativeTime: number): UpdateT
 export  function reduceTime<T extends TimeState>(state: T, action: UpdateTime | IgnoredAction): ReductionWithEffect<T>;
 export  function withTime(start?: number): (effect$: Subject<SideEffect>) => Subscriber<GlobalAction>;
 }
-declare module "kamo-reducers/services/worker" {
-}
 declare module "kamo-reducers/services/workers" {
 import { Subject } from "kamo-reducers/subject";
 import { GlobalAction, SideEffect } from "kamo-reducers/reducers";
 export interface RequestWork {
     effectType: "request-work";
-    workF: string;
-    argument: any;
+    data: any;
     name: string[];
 }
 export interface CancelWork {
@@ -351,21 +348,16 @@ export interface WorkCanceled {
     type: "work-canceled";
     name: string[];
 }
-export  function requestWork<A>(name: string[], f: (a: A) => any, argument: A): RequestWork;
+export  function requestWork(name: string[], data: any): RequestWork;
 export  function cancelWork(name: string[]): CancelWork;
 export  function workCanceled(name: string[]): WorkCanceled;
 export  function workComplete(name: string[], result: any): WorkComplete;
-export  function withFallbackWorkers(...namespaces: {
-    [k: string]: Function;
-}[]): (effect$: Subject<SideEffect>) => {
+export  function withWorkers(workerF: () => Worker): (effect$: Subject<SideEffect>) => {
     subscribe: (dispatch: (action: GlobalAction) => void) => () => void;
 };
-export  function withWorkers(...namespaces: {
-    [k: string]: Function;
-}[]): (effect$: Subject<SideEffect>) => {
-    subscribe: (dispatch: (action: GlobalAction) => void) => () => void;
-};
-export  function functionContents(f: Function): string;
+export  function simpleWorkerFactory(worker: () => void): () => Worker;
+}
+declare module "kamo-reducers/services/worker" {
 }
 declare module "kamo-reducers/dom" {
 import { Subscriber } from "kamo-reducers/subject";

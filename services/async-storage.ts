@@ -2,7 +2,6 @@ import {Subject, Subscriber, Subscription} from "../subject";
 import {GlobalAction, IgnoredSideEffect, SideEffect} from "../reducers";
 import {CancelLocalLoad, loadLocalData, RequestLocalData, StoreLocalData} from "./local-storage";
 import {ClearLocalData} from "./local-storage";
-import {functionContents} from "./workers";
 
 type LoadedMessage = { key: string, value: any, version: number };
 type LoadRequestMessage = { type: "load", key: string, version: number };
@@ -142,3 +141,9 @@ function worker() {
     runNext();
   }
 }
+
+function functionContents(f: Function) {
+  let result = f.toString();
+  return result.slice(result.indexOf("{") + 1, result.length - 1).trim();
+}
+
