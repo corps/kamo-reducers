@@ -41,23 +41,44 @@ export function delayedValue<T>(timeout: number, v: T): Subscriber<T> {
 }
 
 export class BufferedSubject<T> implements Subject<T> {
-  buffer = [] as T[];
-  stack = [0] as number[];
   buffering = true;
 
+  get buffer(): ReadonlyArray<T> {
+    return this._buffer;
+  }
+
+  get stack(): ReadonlyArray<number> {
+    return this._stack;
+  }
+
+  private _buffer = [] as T[];
+  private _stack = [0] as number[];
   private flush$ = new Subject<T>();
+
+  peek() {
+    return this._buffer[0];
+  }
+
+  isEmpty() {
+    return !this._buffer.length;
+  }
+
+  clear() {
+    this._stack = [0];
+    this._buffer = [];
+  }
 
   getRightOffset() {
     var result = 0;
-    for (var i = 0; i < this.stack.length - 1; ++i) {
-      result += this.stack[i];
+    for (var i = 0; i < this._stack.length - 1; ++i) {
+      result += this._stack[i];
     }
     return result;
   }
 
   dispatch = (t: T) => {
-    this.buffer.splice(this.buffer.length - this.getRightOffset(), 0, t);
-    ++this.stack[this.stack.length - 1];
+    this._buffer.splice(this._buffer.length - this.getRightOffset(), 0, t);
+    ++this._stack[this._stack.length - 1];
 
     if (!this.buffering) {
       this.flushUntilEmpty();
@@ -69,7 +90,7 @@ export class BufferedSubject<T> implements Subject<T> {
   };
 
   flushNext = () => {
-    if (this.buffer.length) {
+    if (this._buffer.length) {
       let next = this.takeNext();
       this.executeFlush(next);
       return next;
@@ -80,7 +101,7 @@ export class BufferedSubject<T> implements Subject<T> {
   flushUntilEmpty = () => {
     let flushed = [] as T[];
 
-    while (this.buffer.length) {
+    while (this._buffer.length) {
       let next = this.takeNext();
       flushed.push(next);
       this.executeFlush(next);
@@ -90,20 +111,20 @@ export class BufferedSubject<T> implements Subject<T> {
   };
 
   private takeNext() {
-    var i = this.stack.length - 1;
-    while (i >= 0 && this.stack[i] <= 0) {
+    var i = this._stack.length - 1;
+    while (i >= 0 && this._stack[i] <= 0) {
       --i;
     }
 
-    this.stack[i]--;
-    return this.buffer.shift();
+    this._stack[i]--;
+    return this._buffer.shift();
   }
 
   private executeFlush(t: T) {
-    this.stack.push(0);
+    this._stack.push(0);
     this.flush$.dispatch(t);
-    let remaining = this.stack.pop();
-    this.stack[this.stack.length - 1] += remaining;
+    let remaining = this._stack.pop();
+    this._stack[this._stack.length - 1] += remaining;
   }
 }
 

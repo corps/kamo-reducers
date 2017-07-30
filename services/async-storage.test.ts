@@ -1,4 +1,4 @@
-import {serviceActions} from "../reducers";
+import {isSideEffect, serviceOutputs} from "../reducers";
 import {Subject, Subscription} from "../subject";
 import {GlobalAction, SideEffect} from "../reducers";
 import {withAsyncStorage} from "./async-storage";
@@ -20,17 +20,19 @@ QUnit.test("sequences requests", (assert) => {
     loadLocalData(keyName3, {c: 1}),
   ] as GlobalAction[];
 
-  subscription.add(serviceActions(effect$, [withAsyncStorage]).subscribe(a => {
-    actions.push(a);
+  subscription.add(serviceOutputs(effect$, [withAsyncStorage]).subscribe(a => {
+    if (!isSideEffect(a)) {
+      actions.push(a);
 
-    if (actions.length === 1) {
-      effect$.dispatch(storeLocalData(keyName3, {v: 1}));
-    }
+      if (actions.length === 1) {
+        effect$.dispatch(storeLocalData(keyName3, {v: 1}));
+      }
 
-    if (actions.length >= expectedActions.length) {
-      subscription.unsubscribe();
-      assert.deepEqual(actions, expectedActions);
-      finish();
+      if (actions.length >= expectedActions.length) {
+        subscription.unsubscribe();
+        assert.deepEqual(actions, expectedActions);
+        finish();
+      }
     }
   }));
 
@@ -54,17 +56,19 @@ QUnit.test("multiple requests to the same key coalesce to the latest request", (
     loadLocalData(keyName, {e: 1}),
   ] as GlobalAction[];
 
-  subscription.add(serviceActions(effect$, [withAsyncStorage]).subscribe(a => {
-    actions.push(a);
-    if (actions.length === 1) {
-      effect$.dispatch(storeLocalData(keyName, {e: 1}));
-      effect$.dispatch(requestLocalData(keyName));
-    }
+  subscription.add(serviceOutputs(effect$, [withAsyncStorage]).subscribe(a => {
+    if (!isSideEffect(a)) {
+      actions.push(a);
+      if (actions.length === 1) {
+        effect$.dispatch(storeLocalData(keyName, {e: 1}));
+        effect$.dispatch(requestLocalData(keyName));
+      }
 
-    if (actions.length >= expectedActions.length) {
-      subscription.unsubscribe();
-      assert.deepEqual(actions, expectedActions);
-      finish();
+      if (actions.length >= expectedActions.length) {
+        subscription.unsubscribe();
+        assert.deepEqual(actions, expectedActions);
+        finish();
+      }
     }
   }));
 
@@ -89,13 +93,15 @@ QUnit.test("cancel prevents load requests, loads on empty objects returns undefi
     loadLocalData(keyName1, undefined),
   ] as GlobalAction[];
 
-  subscription.add(serviceActions(effect$, [withAsyncStorage]).subscribe(a => {
-    actions.push(a);
+  subscription.add(serviceOutputs(effect$, [withAsyncStorage]).subscribe(a => {
+    if (!isSideEffect(a)) {
+      actions.push(a);
 
-    if (actions.length >= expectedActions.length) {
-      subscription.unsubscribe();
-      assert.deepEqual(actions, expectedActions);
-      finish();
+      if (actions.length >= expectedActions.length) {
+        subscription.unsubscribe();
+        assert.deepEqual(actions, expectedActions);
+        finish();
+      }
     }
   }));
 

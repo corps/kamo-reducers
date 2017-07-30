@@ -65,7 +65,8 @@ QUnit.test("renderLoop", () => {
   let serviceDispatchAction = calls[0][1][0];
 
   QUnit.assert.strictEqual(serviceDispatchAction, calls[1][1][0]);
-  QUnit.assert.strictEqual(calls[0][1][1].constructor, Subject);
+  QUnit.assert.ok(calls[0][1][1].dispatch);
+  QUnit.assert.ok(calls[0][1][1].subscribe);
 
   (calls[1][1][1] as Subject<SideEffect>).subscribe(effect => {
     calls.push(["innerEffect", [effect]])

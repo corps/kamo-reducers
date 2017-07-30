@@ -1,4 +1,4 @@
-import {serviceActions} from "../reducers";
+import {isSideEffect, serviceOutputs} from "../reducers";
 import {Subject, Subscription} from "../subject";
 import {GlobalAction, SideEffect} from "../reducers";
 import {cancelWork, requestWork, simpleWorkerFactory, withWorkers, workCanceled, workComplete} from "./workers";
@@ -17,7 +17,7 @@ QUnit.test("multiple consecutive requests coalesce", (assert) => {
     workComplete(["a", "1"], 3),
   ] as GlobalAction[];
 
-  subscription.add(serviceActions(effect$, [
+  subscription.add(serviceOutputs(effect$, [
     withWorkers(simpleWorkerFactory(() => {
       let me = self as any;
       me.counter = me.counter || 0;
@@ -27,12 +27,14 @@ QUnit.test("multiple consecutive requests coalesce", (assert) => {
       }
     }))
   ]).subscribe(a => {
-    actions.push(a);
+    if (!isSideEffect(a)) {
+      actions.push(a);
 
-    if (actions.length >= expectedActions.length) {
-      subscription.unsubscribe();
-      assert.deepEqual(actions, expectedActions);
-      finish();
+      if (actions.length >= expectedActions.length) {
+        subscription.unsubscribe();
+        assert.deepEqual(actions, expectedActions);
+        finish();
+      }
     }
   }));
 
@@ -53,7 +55,7 @@ QUnit.test("cancelling jobs", (assert) => {
     workComplete(["a", "2"], 2),
   ] as GlobalAction[];
 
-  subscription.add(serviceActions(effect$, [
+  subscription.add(serviceOutputs(effect$, [
     withWorkers(simpleWorkerFactory(() => {
       let me = self as any;
       me.counter = me.counter || 0;
@@ -63,16 +65,18 @@ QUnit.test("cancelling jobs", (assert) => {
       }
     }))
   ]).subscribe(a => {
-    actions.push(a);
+    if (!isSideEffect(a)) {
+      actions.push(a);
 
-    if (actions.length === 2) {
-      effect$.dispatch(requestWork(["a", "2"], 2));
-    }
+      if (actions.length === 2) {
+        effect$.dispatch(requestWork(["a", "2"], 2));
+      }
 
-    if (actions.length >= expectedActions.length) {
-      subscription.unsubscribe();
-      assert.deepEqual(actions, expectedActions);
-      finish();
+      if (actions.length >= expectedActions.length) {
+        subscription.unsubscribe();
+        assert.deepEqual(actions, expectedActions);
+        finish();
+      }
     }
   }));
 

@@ -1,4 +1,4 @@
-import {GlobalAction, Reducer, Service, serviceActions, SideEffect} from "./reducers";
+import {GlobalAction, Reducer, Service, serviceOutputs, SideEffect} from "./reducers";
 import {BufferedSubject, Subject, Subscription} from "./subject";
 import {trackMutations} from "./track-mutations";
 import {isSideEffect} from "./reducers";
@@ -11,7 +11,7 @@ export class Tester<State> {
 
   start() {
     this.subscription.add(this.queuedAction$.subscribe(this.flushedDispatch));
-    this.subscription.add(serviceActions(this.queuedEffect$, this.services).subscribe(this.queuedAction$.dispatch));
+    this.subscription.add(serviceOutputs(this.queuedEffect$, this.services).subscribe(this.queued$.dispatch));
   }
 
   subscription = new Subscription();
@@ -20,7 +20,7 @@ export class Tester<State> {
   update$ = new Subject<[GlobalAction, State]>();
 
   services = [] as Service[];
-  
+
   private queuedEffect$: Subject<SideEffect> = {
     dispatch: this.queued$.dispatch,
     subscribe: (listener: (effect: SideEffect) => void) => {
@@ -46,7 +46,7 @@ export class Tester<State> {
   private flushedDispatch = (action: GlobalAction) => this.dispatch(action, false);
   dispatch = (action: GlobalAction, clearQueue = true) => {
     if (clearQueue) {
-      this.queued$.buffer.length = 0;
+      this.queued$.clear();
     }
 
     let reduction = this.reducer(this.state, action as any);

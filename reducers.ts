@@ -8,7 +8,7 @@ export type IgnoredSideEffect = { effectType: '' };
 export type IgnoredAction = { type: '' };
 
 export type Renderer<State, Action extends GlobalAction> =
-    (state: State | 0, dispatchAction: (a: Action) => void, next: () => void) => void;
+  (state: State | 0, dispatchAction: (a: Action) => void, next: () => void) => void;
 
 export type Service = (sideEffect$: Subject<SideEffect>) => Subscriber<GlobalAction>;
 
@@ -17,11 +17,11 @@ export function isSideEffect(ae: SideEffect | GlobalAction): ae is SideEffect {
 }
 
 export type RenderUpdate<State, Action extends GlobalAction> =
-    ["a", Action] |
-    ["s", State] |
-    ["e", SideEffect] |
-    ["r"] |
-    ["c"];
+  ["a", Action] |
+  ["s", State] |
+  ["e", SideEffect] |
+  ["r"] |
+  ["c"];
 
 const renderStart = ["r"] as ["r"];
 const renderComplete = ["c"] as ["c"];
@@ -53,7 +53,13 @@ export function renderLoop<State, Action extends GlobalAction>(renderer: Rendere
         dispatch(renderComplete);
       }));
 
-      subscription.add(serviceActions(effect$, services).subscribe(a => action$.dispatch(a as Action)));
+      subscription.add(serviceOutputs(effect$, services).subscribe(a => {
+        if (isSideEffect(a)) {
+          effect$.dispatch(a);
+        } else {
+          action$.dispatch(a);
+        }
+      }));
       action$.dispatch({type: "@init"});
 
       return subscription.unsubscribe;
@@ -61,19 +67,14 @@ export function renderLoop<State, Action extends GlobalAction>(renderer: Rendere
   }
 }
 
-export function serviceActions(effect$: Subscriber<SideEffect>,
-                               services: Service[]): Subscriber<GlobalAction> {
+export function serviceOutputs(effect$: Subscriber<SideEffect>,
+                               services: Service[]): Subscriber<GlobalAction | SideEffect> {
   return {
-    subscribe: (dispatch: (a: GlobalAction) => void) => {
-      let sideEffect$ = new Subject<SideEffect>();
+    subscribe: (dispatch: (ea: GlobalAction | SideEffect) => void) => {
       let subscription = new Subscription();
-      let uninstalled = services.slice();
-      let installed = false;
 
-      const installThenDispatch = (a: GlobalAction) => {
-        installServices();
-        dispatch(a);
-      };
+      let installed = false;
+      let uninstalled = services.slice();
 
       function installServices() {
         if (installed) return;
@@ -88,8 +89,14 @@ export function serviceActions(effect$: Subscriber<SideEffect>,
         installed = true;
       }
 
+      const installThenDispatch = (ea: GlobalAction | SideEffect) => {
+        installServices();
+        dispatch(ea);
+      };
+
+      let sideEffect$ = {subscribe: effect$.subscribe, dispatch: installThenDispatch};
+
       try {
-        subscription.add(effect$.subscribe(e => sideEffect$.dispatch(e)));
         installServices();
       } catch (e) {
         subscription.unsubscribe();
