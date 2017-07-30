@@ -41,14 +41,24 @@ export function delayedValue<T>(timeout: number, v: T): Subscriber<T> {
 }
 
 export class BufferedSubject<T> implements Subject<T> {
-  queue = [] as T[];
-  stack = [] as T[];
+  buffer = [] as T[];
+  stack = [0] as number[];
   buffering = true;
 
   private flush$ = new Subject<T>();
 
+  getRightOffset() {
+    var result = 0;
+    for (var i = 0; i < this.stack.length - 1; ++i) {
+      result += this.stack[i];
+    }
+    return result;
+  }
+
   dispatch = (t: T) => {
-    this.queue.push(t);
+    this.buffer.splice(this.buffer.length - this.getRightOffset(), 0, t);
+    ++this.stack[this.stack.length - 1];
+
     if (!this.buffering) {
       this.flushUntilEmpty();
     }
@@ -59,26 +69,19 @@ export class BufferedSubject<T> implements Subject<T> {
   };
 
   flushNext = () => {
-    const next = this.queue.shift();
-    this.executeFlush(next);
-    return next;
-  };
-
-  flushCurrent = () => {
-    let queue = this.queue;
-    this.queue = [];
-
-    while (queue.length) {
-      this.executeFlush(queue.shift());
+    if (this.buffer.length) {
+      let next = this.takeNext();
+      this.executeFlush(next);
+      return next;
     }
-
-    return queue;
+    return undefined;
   };
 
   flushUntilEmpty = () => {
     let flushed = [] as T[];
-    while (this.queue.length) {
-      let next = this.queue.shift();
+
+    while (this.buffer.length) {
+      let next = this.takeNext();
       flushed.push(next);
       this.executeFlush(next);
     }
@@ -86,10 +89,21 @@ export class BufferedSubject<T> implements Subject<T> {
     return flushed;
   };
 
-  executeFlush(t: T) {
-    this.stack.push(t);
+  private takeNext() {
+    var i = this.stack.length - 1;
+    while (i >= 0 && this.stack[i] <= 0) {
+      --i;
+    }
+
+    this.stack[i]--;
+    return this.buffer.shift();
+  }
+
+  private executeFlush(t: T) {
+    this.stack.push(0);
     this.flush$.dispatch(t);
-    this.stack.pop();
+    let remaining = this.stack.pop();
+    this.stack[this.stack.length - 1] += remaining;
   }
 }
 

@@ -45,9 +45,8 @@ export class Tester<State> {
 
   private flushedDispatch = (action: GlobalAction) => this.dispatch(action, false);
   dispatch = (action: GlobalAction, clearQueue = true) => {
-    console.log(action);
     if (clearQueue) {
-      this.queued$.queue.length = 0;
+      this.queued$.buffer.length = 0;
     }
 
     let reduction = this.reducer(this.state, action as any);
@@ -60,7 +59,7 @@ export class Tester<State> {
     }
   };
 
-  findEffects(type: string, ea = this.queued$.queue): SideEffect[] {
+  findEffects(type: string, ea = this.queued$.buffer): SideEffect[] {
     let result = [] as SideEffect[];
 
     ea.forEach((e: GlobalAction | SideEffect) => {
@@ -79,7 +78,7 @@ export class Tester<State> {
     return result;
   }
 
-  findActions(type: string, ea = this.queued$.queue): GlobalAction[] {
+  findActions(type: string, ea = this.queued$.buffer): GlobalAction[] {
     return ea.filter((e: GlobalAction | SideEffect) => {
       if (isSideEffect(e)) {
         return false;

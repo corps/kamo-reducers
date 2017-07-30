@@ -158,57 +158,113 @@ QUnit.test("Subject.subscribe's unsubscribe does not remove other subscriptions 
   QUnit.assert.deepEqual(numbers, [1, 3, 4, 1, 9]);
 });
 
-QUnit.test("BufferedSubject", () => {
-  let subject = new BufferedSubject<number>();
-  let dispatch = subject.dispatch;
-  let subscribe = subject.subscribe;
+function recordReceived(subject: Subject<number>,
+                        received: number[],
+                        cb: () => void) {
 
-  let received = [] as number[];
-  let unsubscribe = subscribe(v => received.push(v));
+  let unsubscribe = subject.subscribe(n => {
+    received.push(n);
+    if (n === 1) {
+      subject.dispatch(2);
+      cb();
+      subject.dispatch(3);
+      cb();
+      subject.dispatch(11);
+      cb();
+    }
 
-  dispatch(1);
-  dispatch(2);
+    if (n === 3) {
+      subject.dispatch(4);
+      cb();
+      subject.dispatch(7);
+      cb();
+      subject.dispatch(8);
+      cb();
+    }
 
-  QUnit.assert.deepEqual(received, []);
-  received = [];
+    if (n === 4) {
+      subject.dispatch(5);
+      cb();
+    }
 
-  subject.flushNext.apply(null);
-  QUnit.assert.deepEqual(received, [1]);
-  received = [];
+    if (n === 5) {
+      subject.dispatch(6);
+      cb();
+    }
 
-  dispatch(3);
-  let unsubscribe2 = subscribe(v => v === 5 ? unsubscribe2() : dispatch(v + 10));
+    if (n === 8) {
+      subject.dispatch(9);
+      cb();
+      subject.dispatch(10);
+      cb();
+    }
 
-  subject.flushCurrent.apply(null);
-  QUnit.assert.deepEqual(received, [2, 3]);
-  received = [];
+    if (n === 11) {
+      subject.dispatch(12);
+      cb();
+      subject.dispatch(14);
+      cb();
+      subject.dispatch(19);
+      cb();
+    }
 
-  subject.flushCurrent.apply(null);
-  QUnit.assert.deepEqual(received, [12, 13]);
-  received = [];
+    if (n === 12) {
+      subject.dispatch(13);
+      cb();
+    }
 
-  dispatch(1);
-  dispatch(3);
-  dispatch(5);
-  subject.flushUntilEmpty.apply(null);
-  QUnit.assert.deepEqual(received, [22, 23, 1, 3, 5, 32, 33, 11, 13]);
-  received = [];
+    if (n === 14) {
+      subject.dispatch(15);
+      cb();
+      subject.dispatch(16);
+      cb();
+    }
 
-  subject.flushUntilEmpty.apply(null);
-  QUnit.assert.deepEqual(received, []);
-  received = [];
+    if (n === 16) {
+      subject.dispatch(17);
+      cb();
+    }
 
-  dispatch(1);
-  dispatch(2);
+    if (n === 17) {
+      subject.dispatch(18);
+      cb();
+    }
+  });
 
-  subject.flushUntilEmpty.apply(null);
-  QUnit.assert.deepEqual(received, [1, 2]);
-  received = [];
+  subject.dispatch(1);
+  subject.dispatch(20);
 
-  dispatch(3);
-  dispatch(4);
+  return unsubscribe;
+}
+
+QUnit.test("BufferedSubject", (assert) => {
+  let subject = new Subject<number>();
+  const originalReceived: number[] = [];
+  recordReceived(subject, originalReceived, () => 0);
+
+  let bufferedSubject = new BufferedSubject<number>();
+  let received: number[] = [];
+  let unsubscribe = recordReceived(bufferedSubject, received, () => 0);
+  assert.equal(received.length, 0);
+
+  debugger
+  bufferedSubject.flushUntilEmpty();
+  assert.deepEqual(received, originalReceived);
   unsubscribe();
-  subject.flushUntilEmpty.apply(null);
-  QUnit.assert.deepEqual(received, []);
+
+  received.length = 0;
+  unsubscribe = recordReceived(bufferedSubject, received, () => bufferedSubject.flushNext());
+  bufferedSubject.flushUntilEmpty();
+  assert.deepEqual(received, originalReceived);
+  unsubscribe();
+
+  for (let i = 0; i < 100; ++i) {
+    received.length = 0;
+    debugger
+    unsubscribe = recordReceived(bufferedSubject, received, () => (Math.random() < 0.5 ? bufferedSubject.flushNext() : null));
+    bufferedSubject.flushUntilEmpty();
+    assert.deepEqual(received, originalReceived);
+    unsubscribe();
+  }
 });
 
