@@ -69,6 +69,9 @@ export function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction>
       let requests = {} as { [k: string]: XMLHttpRequest };
       let existing: XMLHttpRequest;
       let canceled = false;
+      let xhrQueue: XMLHttpRequest[] = [];
+      let configsQueue: AjaxConfig[] = [];
+      let executingCount: number = 0;
 
       subscription.add(() => {
         canceled = true;
@@ -84,6 +87,13 @@ export function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction>
 
             if (existing) {
               existing.abort();
+
+              let idx = xhrQueue.indexOf(existing);
+              if (idx !== -1) {
+                xhrQueue.splice(idx, 1);
+                configsQueue.splice(idx, 1);
+              }
+
               delete requests[normalizedName];
             }
             break;
@@ -98,46 +108,46 @@ export function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction>
 
             let xhr = requests[normalizedName] = new XMLHttpRequest();
 
-            xhr.withCredentials = false;
-
-            if (effect.config.overrideMimeType) {
-              xhr.overrideMimeType(effect.config.overrideMimeType);
-            }
-
-            xhr.onerror = function () {
+            const completeXhr = () => {
+              executingCount--;
               if (requests[normalizedName] === xhr) {
                 delete requests[normalizedName];
               }
+
+              if (canceled) return;
+
+              if (executingCount < 6 && xhrQueue.length) {
+                let nextXhr = xhrQueue.shift();
+                let nextConfig = configsQueue.shift();
+                executeXhrWithConfig(nextConfig, nextXhr);
+              }
+            }
+
+            xhr.onerror = function () {
+              completeXhr();
 
               dispatch(completeRequest(effect, 0, "", ""));
             };
 
             xhr.onload = function () {
-              if (requests[normalizedName] === xhr) {
-                delete requests[normalizedName];
-              }
+              completeXhr();
 
               dispatch(completeRequest(effect, xhr.status, xhr.responseText, xhr.getAllResponseHeaders()));
             };
 
             xhr.ontimeout = function () {
-              if (requests[normalizedName] === xhr) {
-                delete requests[normalizedName];
-              }
+              completeXhr();
 
               dispatch(completeRequest(effect, 408, "", ""));
             };
 
-            xhr.open(effect.config.method, getAjaxUrl(effect.config), true);
-
-            const headers = effect.config.headers;
-            if (headers) {
-              for (let key in headers) {
-                xhr.setRequestHeader(key, headers[key]);
-              }
+            if (executingCount < 6) {
+              executingCount++;
+              executeXhrWithConfig(effect.config, xhr);
+            } else {
+              xhrQueue.push(xhr);
+              configsQueue.push(effect.config);
             }
-
-            xhr.send(getAjaxBody(effect.config));
         }
       }));
 
@@ -152,6 +162,25 @@ export function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction>
       return subscription.unsubscribe;
     }
   }
+}
+
+export function executeXhrWithConfig(config: AjaxConfig, xhr: XMLHttpRequest) {
+  xhr.withCredentials = false;
+
+  if (config.overrideMimeType) {
+    xhr.overrideMimeType(config.overrideMimeType);
+  }
+
+  xhr.open(config.method, getAjaxUrl(config), true);
+
+  const headers = config.headers;
+  if (headers) {
+    for (let key in headers) {
+      xhr.setRequestHeader(key, headers[key]);
+    }
+  }
+
+  xhr.send(getAjaxBody(config));
 }
 
 export function getAjaxUrl(config: AjaxConfig): string {
