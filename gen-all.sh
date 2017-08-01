@@ -5,6 +5,7 @@ rm all.d.ts
 
 tsc -d
 rm *.test.d.ts
+rm **/*.test.d.ts
 echo "" > all
 
 for f in */*.d.ts; do

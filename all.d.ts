@@ -86,6 +86,7 @@ export interface CompleteRequest {
 }
 export  function completeRequest(requestEffect: RequestAjax, status: number, response: string, headers: string, when?: number): CompleteRequest;
 export  function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
+export  function executeXhrWithConfig(config: AjaxConfig, xhr: XMLHttpRequest): void;
 export  function getAjaxUrl(config: AjaxConfig): string;
 export  function getAjaxBody(config: AjaxConfig): string;
 export  function parseResponseHeaders(headerStr: string): {
@@ -126,8 +127,6 @@ declare module "kamo-reducers/services/async-storage" {
 import { Subject, Subscriber } from "kamo-reducers/subject";
 import { GlobalAction, SideEffect } from "kamo-reducers/reducers";
 export  function withAsyncStorage(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
-}
-declare module "kamo-reducers/services/async-storage" {
 }
 declare module "kamo-reducers/services/debounce" {
 import { GlobalAction, SideEffect } from "kamo-reducers/reducers";
@@ -270,8 +269,6 @@ export  function withSequenced(effect$: Subject<SideEffect>): Subscriber<GlobalA
 export  function sequence(first: SideEffect | 0, next: SideEffect | 0): SideEffect;
 export  function sequenceReduction<State>(effect: SideEffect | 0, reduction: ReductionWithEffect<State>): ReductionWithEffect<State>;
 }
-declare module "kamo-reducers/services/sequence" {
-}
 declare module "kamo-reducers/services/sizing" {
 import { GlobalAction, ReductionWithEffect, SideEffect } from "kamo-reducers/reducers";
 import { Subject, Subscriber } from "kamo-reducers/subject";
@@ -326,8 +323,6 @@ export  function requestTick(after: number): RequestTick;
 export  function updateTime(absoluteTime: number, relativeTime: number): UpdateTime;
 export  function reduceTime<T extends TimeState>(state: T, action: UpdateTime | IgnoredAction): ReductionWithEffect<T>;
 export  function withTime(start?: number): (effect$: Subject<SideEffect>) => Subscriber<GlobalAction>;
-}
-declare module "kamo-reducers/services/worker" {
 }
 declare module "kamo-reducers/services/workers" {
 import { Subject } from "kamo-reducers/subject";
