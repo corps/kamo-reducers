@@ -62,104 +62,106 @@ export function completeRequest(requestEffect: RequestAjax,
   }
 }
 
-export function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction> {
-  return {
-    subscribe: (dispatch: (action: GlobalAction) => void) => {
-      const subscription = new Subscription();
-      let requests = {} as { [k: string]: XMLHttpRequest };
-      let existing: XMLHttpRequest;
-      let canceled = false;
-      let xhrQueue: XMLHttpRequest[] = [];
-      let configsQueue: AjaxConfig[] = [];
-      let executingCount: number = 0;
+export function withAjax(queueSize = 6) {
+  return (effect$: Subject<SideEffect>): Subscriber<GlobalAction> => {
+    return {
+      subscribe: (dispatch: (action: GlobalAction) => void) => {
+        const subscription = new Subscription();
+        let requests = {} as { [k: string]: XMLHttpRequest };
+        let existing: XMLHttpRequest;
+        let canceled = false;
+        let xhrQueue: XMLHttpRequest[] = [];
+        let configsQueue: AjaxConfig[] = [];
+        let executingCount: number = 0;
 
-      subscription.add(() => {
-        canceled = true;
-      });
+        subscription.add(() => {
+          canceled = true;
+        });
 
-      subscription.add(effect$.subscribe((effect: RequestAjax | AbortRequest | IgnoredSideEffect) => {
-        let normalizedName: string;
+        subscription.add(effect$.subscribe((effect: RequestAjax | AbortRequest | IgnoredSideEffect) => {
+          let normalizedName: string;
 
-        switch (effect.effectType) {
-          case "abort-request":
-            normalizedName = effect.name.join("-");
-            existing = requests[normalizedName];
+          switch (effect.effectType) {
+            case "abort-request":
+              normalizedName = effect.name.join("-");
+              existing = requests[normalizedName];
 
-            if (existing) {
-              existing.abort();
+              if (existing) {
+                existing.abort();
 
-              let idx = xhrQueue.indexOf(existing);
-              if (idx !== -1) {
-                xhrQueue.splice(idx, 1);
-                configsQueue.splice(idx, 1);
-              }
+                let idx = xhrQueue.indexOf(existing);
+                if (idx !== -1) {
+                  xhrQueue.splice(idx, 1);
+                  configsQueue.splice(idx, 1);
+                }
 
-              delete requests[normalizedName];
-            }
-            break;
-
-          case "request-ajax":
-            normalizedName = effect.name.join("-");
-            if (requests[normalizedName]) {
-              effect$.dispatch(abortRequest(effect.name));
-            }
-
-            if (canceled) break;
-
-            let xhr = requests[normalizedName] = new XMLHttpRequest();
-
-            const completeXhr = () => {
-              executingCount--;
-              if (requests[normalizedName] === xhr) {
                 delete requests[normalizedName];
               }
+              break;
 
-              if (canceled) return;
-
-              if (executingCount < 6 && xhrQueue.length) {
-                let nextXhr = xhrQueue.shift();
-                let nextConfig = configsQueue.shift();
-                executeXhrWithConfig(nextConfig, nextXhr);
+            case "request-ajax":
+              normalizedName = effect.name.join("-");
+              if (requests[normalizedName]) {
+                effect$.dispatch(abortRequest(effect.name));
               }
-            }
 
-            xhr.onerror = function () {
-              completeXhr();
+              if (canceled) break;
 
-              dispatch(completeRequest(effect, 0, "", ""));
-            };
+              let xhr = requests[normalizedName] = new XMLHttpRequest();
 
-            xhr.onload = function () {
-              completeXhr();
+              const completeXhr = () => {
+                executingCount--;
+                if (requests[normalizedName] === xhr) {
+                  delete requests[normalizedName];
+                }
 
-              dispatch(completeRequest(effect, xhr.status, xhr.responseText, xhr.getAllResponseHeaders()));
-            };
+                if (canceled) return;
 
-            xhr.ontimeout = function () {
-              completeXhr();
+                if (executingCount < queueSize && xhrQueue.length) {
+                  let nextXhr = xhrQueue.shift();
+                  let nextConfig = configsQueue.shift();
+                  executeXhrWithConfig(nextConfig, nextXhr);
+                }
+              }
 
-              dispatch(completeRequest(effect, 408, "", ""));
-            };
+              xhr.onerror = function () {
+                completeXhr();
 
-            if (executingCount < 6) {
-              executingCount++;
-              executeXhrWithConfig(effect.config, xhr);
-            } else {
-              xhrQueue.push(xhr);
-              configsQueue.push(effect.config);
-            }
-        }
-      }));
+                dispatch(completeRequest(effect, 0, "", ""));
+              };
 
-      subscription.add(() => {
-        let r = requests;
-        requests = {};
-        for (let k in r) {
-          r[k].abort();
-        }
-      });
+              xhr.onload = function () {
+                completeXhr();
 
-      return subscription.unsubscribe;
+                dispatch(completeRequest(effect, xhr.status, xhr.responseText, xhr.getAllResponseHeaders()));
+              };
+
+              xhr.ontimeout = function () {
+                completeXhr();
+
+                dispatch(completeRequest(effect, 408, "", ""));
+              };
+
+              if (executingCount < queueSize) {
+                executingCount++;
+                executeXhrWithConfig(effect.config, xhr);
+              } else {
+                xhrQueue.push(xhr);
+                configsQueue.push(effect.config);
+              }
+          }
+        }));
+
+        subscription.add(() => {
+          let r = requests;
+          requests = {};
+          for (let k in r) {
+            r[k].abort();
+          }
+        });
+
+        return subscription.unsubscribe;
+      }
     }
   }
 }

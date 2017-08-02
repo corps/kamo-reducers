@@ -85,7 +85,7 @@ export interface CompleteRequest {
     when: number;
 }
 export  function completeRequest(requestEffect: RequestAjax, status: number, response: string, headers: string, when?: number): CompleteRequest;
-export  function withAjax(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
+export  function withAjax(queueSize?: number): (effect$: Subject<SideEffect>) => Subscriber<GlobalAction>;
 export  function executeXhrWithConfig(config: AjaxConfig, xhr: XMLHttpRequest): void;
 export  function getAjaxUrl(config: AjaxConfig): string;
 export  function getAjaxBody(config: AjaxConfig): string;
