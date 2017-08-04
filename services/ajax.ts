@@ -120,6 +120,8 @@ export function withAjax(queueSize = 6) {
                 if (executingCount < queueSize && xhrQueue.length) {
                   let nextXhr = xhrQueue.shift();
                   let nextConfig = configsQueue.shift();
+
+                  executingCount++;
                   executeXhrWithConfig(nextConfig, nextXhr);
                 }
               }

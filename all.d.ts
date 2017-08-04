@@ -191,38 +191,43 @@ export interface HistoryPush {
     effectType: 'history-push';
     location: PathLocation;
 }
-export interface SetBaseHref {
-    effectType: 'set-base-href';
-    href: string;
-}
-export  function setBaseHref(href: string): SetBaseHref;
 export  function historyPush(location: PathLocation): HistoryPush;
-export interface LoadPage {
-    type: 'load-page';
+export interface HistoryReplace {
+    effectType: 'history-replace';
     location: PathLocation;
 }
-export  function loadPage(location: PathLocation): LoadPage;
-export  const emptyLocation: PathLocation;
-export  function withHistory(history: {
-    listen: (listener: (location: PathLocation, action: string) => void) => () => void;
-    push: (location: PathLocation) => void;
-}, leaveBaseTag?: boolean): (effect$: Subject<SideEffect>) => Subscriber<GlobalAction>;
+export  function historyReplace(location: PathLocation): HistoryReplace;
 export interface Visit {
     type: 'visit';
     noHistory?: boolean;
     location: PathLocation;
 }
-export  function visit(location: PathLocation, noHistory?: boolean): Visit;
-export interface RequestBrowseToAppLocation {
-    effectType: "request-browse-to-app-location";
+export  function visit(location: PathLocation): Visit;
+export interface LinkClick {
+    type: 'link-click';
     location: PathLocation;
 }
-export  function requestBrowseToAppLocation(location: PathLocation): RequestBrowseToAppLocation;
-export  type NavigationAction = Visit | LoadPage;
+export  function linkClick(location: PathLocation): LinkClick;
+export interface SetOnUnloadMessage {
+    effectType: 'set-on-unload-message';
+    enable: boolean;
+}
+export  function setOnUnloadMessage(enable: boolean): SetOnUnloadMessage;
+export  function clearOnUnloadMessage(): SetOnUnloadMessage;
+export  const emptyLocation: PathLocation;
+export interface HistoryProvider {
+    push(location: PathLocation): void;
+    listen(cb: (location: PathLocation, action: string) => void): () => void;
+    replace(location: PathLocation): void;
+    location: PathLocation;
+}
+export  function withHistory(history: HistoryProvider): (effect$: Subject<SideEffect>) => Subscriber<GlobalAction>;
+export  type NavigationAction = Visit | LinkClick;
 export  function navigationReducer<State extends Object>(route: (state: State, pathLocation: PathLocation) => ReductionWithEffect<State>): (state: State, action: NavigationAction) => ReductionWithEffect<State>;
-export  function visitDispatcher(dispatch: (a: Visit) => void): (event: {
-    target: HTMLElement;
-    preventDefault: () => void;
+export  function inferBasePath(): string;
+export  function visitDispatcher(dispatch: (a: GlobalAction) => void): (event: {
+    preventDefault(): void;
+    target: any;
 }) => void;
 }
 declare module "kamo-reducers/services/notification" {

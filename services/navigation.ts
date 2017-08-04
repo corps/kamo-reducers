@@ -1,6 +1,7 @@
 import {Subject, Subscriber, Subscription} from "../subject";
 import {GlobalAction, IgnoredSideEffect, ReductionWithEffect, SideEffect} from "../reducers";
 import {sequence} from "./sequence";
+
 export interface PathLocation {
   pathname: string,
   search: string,
@@ -12,78 +13,19 @@ export interface HistoryPush {
   location: PathLocation
 }
 
-export interface SetBaseHref {
-  effectType: 'set-base-href'
-  href: string
-}
-
-export function setBaseHref(href: string): SetBaseHref {
-  return {effectType: 'set-base-href', href};
-}
-
 export function historyPush(location: PathLocation): HistoryPush {
   return {effectType: "history-push", location}
 }
 
-export interface LoadPage {
-  type: 'load-page',
+export interface HistoryReplace {
+  effectType: 'history-replace',
   location: PathLocation
 }
 
-export function loadPage(location: PathLocation): LoadPage {
-  return {type: 'load-page', location};
-}
-
-export const emptyLocation: PathLocation = {pathname: "", hash: "", search: ""};
-
-export function withHistory(history: {
-  listen: (listener: (location: PathLocation, action: string) => void) => () => void
-  push: (location: PathLocation) => void
-}, leaveBaseTag = false) {
-  return (effect$: Subject<SideEffect>): Subscriber<GlobalAction> => {
-    return {
-      subscribe: (dispatch: (action: GlobalAction) => void) => {
-        let subscription = new Subscription();
-        let baseHrefSubscription = new Subscription();
-        subscription.add(baseHrefSubscription.unsubscribe);
-
-        subscription.add(history.listen((location, action) => {
-          if (action !== "PUSH") {
-            dispatch(loadPage(location));
-          }
-        }));
-
-        subscription.add(effect$.subscribe((effect: HistoryPush | SetBaseHref | RequestBrowseToAppLocation | IgnoredSideEffect) => {
-          switch (effect.effectType) {
-            case 'history-push':
-              history.push(effect.location);
-              break;
-
-            case 'request-browse-to-app-location':
-              let basePath = inferBasePath();
-              if (basePath[basePath.length - 1] !== "/") basePath += "/";
-              let location = {...effect.location, pathname: basePath + effect.location.pathname};
-              dispatch(visit(location));
-              break;
-
-            case 'set-base-href':
-              baseHrefSubscription.unsubscribe();
-              let baseElement = document.createElement("BASE") as HTMLBaseElement;
-              baseElement.href = effect.href;
-              document.head.appendChild(baseElement);
-              if (!leaveBaseTag) {
-                baseHrefSubscription.add(() => baseElement.remove());
-              }
-
-              break;
-          }
-        }));
-
-        dispatch(loadPage(window.location));
-
-        return subscription.unsubscribe;
-      }
-    }
+export function historyReplace(location: PathLocation): HistoryReplace {
+  return {
+    effectType: "history-replace",
+    location
   }
 }
 
@@ -93,46 +35,110 @@ export interface Visit {
   location: PathLocation
 }
 
-export function visit(location: PathLocation, noHistory = false): Visit {
-  return {
-    type: 'visit',
-    location,
-    noHistory
-  }
+export function visit(location: PathLocation): Visit {
+  return {type: "visit", location};
 }
 
-export interface RequestBrowseToAppLocation {
-  effectType: "request-browse-to-app-location",
+export interface LinkClick {
+  type: 'link-click',
   location: PathLocation
 }
 
-export function requestBrowseToAppLocation(location: PathLocation): RequestBrowseToAppLocation {
+export function linkClick(location: PathLocation): LinkClick {
+  let {pathname, search, hash} = location;
   return {
-    effectType: "request-browse-to-app-location",
-    location
+    type: 'link-click',
+    location: {pathname, search, hash}
   }
 }
 
-export type NavigationAction = Visit | LoadPage;
+export interface SetOnUnloadMessage {
+  effectType: 'set-on-unload-message',
+  enable: boolean
+}
+
+export function setOnUnloadMessage(enable: boolean): SetOnUnloadMessage {
+  return {
+    effectType: 'set-on-unload-message',
+    enable
+  }
+}
+
+export function clearOnUnloadMessage(): SetOnUnloadMessage {
+  return {effectType: "set-on-unload-message", enable: false}
+}
+
+export const emptyLocation: PathLocation = {pathname: "", hash: "", search: ""};
+
+export interface HistoryProvider {
+  push(location: PathLocation): void
+  listen(cb: (location: PathLocation, action: string) => void): () => void
+  replace(location: PathLocation): void
+  location: PathLocation
+}
+
+export function withHistory(history: HistoryProvider) {
+  return (effect$: Subject<SideEffect>): Subscriber<GlobalAction> => {
+    return {
+      subscribe: (dispatch: (action: GlobalAction) => void) => {
+        let subscription = new Subscription();
+        let unloadMessage = false;
+
+        const onUnload = (e: BeforeUnloadEvent) => {
+          if (unloadMessage) {
+            e.returnValue = unloadMessage;
+            return unloadMessage;
+          }
+        };
+
+        window.addEventListener('beforeunload', onUnload);
+        subscription.add(() => {
+          window.removeEventListener('beforeunload', onUnload);
+        });
+
+        subscription.add(history.listen((location, action) => {
+          dispatch(visit(location));
+        }));
+
+        subscription.add(effect$.subscribe((effect: HistoryPush | HistoryReplace | SetOnUnloadMessage | IgnoredSideEffect) => {
+          switch (effect.effectType) {
+            case "set-on-unload-message":
+              unloadMessage = effect.enable;
+              break;
+
+            case 'history-replace':
+              history.replace(effect.location);
+              break;
+
+            case 'history-push':
+              history.push(effect.location);
+              break;
+          }
+        }));
+
+        history.replace(history.location);
+        return subscription.unsubscribe;
+      }
+    }
+  }
+}
+
+export type NavigationAction = Visit | LinkClick;
 
 export function navigationReducer<State extends Object>(route: (state: State,
                                                                 pathLocation: PathLocation) => ReductionWithEffect<State>) {
   return (state: State, action: NavigationAction): ReductionWithEffect<State> => {
-    let withHistoryPush = false;
     let effect: SideEffect | 0 = null;
 
     switch (action.type) {
       case 'visit':
-        withHistoryPush = !action.noHistory;
-
-      case 'load-page':
-        let reduction = route(state, locationFromBasePath(action.location));
+        let reduction = route(state, action.location);
         effect = sequence(effect, reduction.effect);
         state = reduction.state;
+        break;
 
-        if (withHistoryPush) {
-          effect = sequence(effect, historyPush(action.location));
-        }
+      case 'link-click':
+        effect = sequence(effect, historyPush(action.location));
         break;
     }
 
@@ -140,7 +146,7 @@ export function navigationReducer<State extends Object>(route: (state: State,
   }
 }
 
-function inferBasePath(): string {
+export function inferBasePath(): string {
   let tags = document.getElementsByTagName("BASE");
   if (tags.length === 0) return "/";
 
@@ -148,23 +154,8 @@ function inferBasePath(): string {
   return "/" + parts.slice(3).join("/");
 }
 
-function chopOffBasePath(pathname: string) {
-  let base = inferBasePath();
-
-  if (pathname.slice(0, base.length) === base) {
-    return pathname.slice(base.lastIndexOf("/"));
-  }
-
-  return "/";
-}
-
-function locationFromBasePath(location: { pathname: string, search: string, hash: string }): PathLocation {
-  const {pathname, search, hash} = location;
-  return {pathname: chopOffBasePath(pathname), search, hash};
-}
-
-export function visitDispatcher(dispatch: (a: Visit) => void) {
-  return ((event: { target: HTMLElement, preventDefault: () => void }) => {
+export function visitDispatcher(dispatch: (a: GlobalAction) => void) {
+  return ((event: { preventDefault(): void, target: any }) => {
     let tag = (event.target as HTMLAnchorElement);
 
     while (tag.parentElement != null && tag.tagName != "A") {
@@ -172,7 +163,13 @@ export function visitDispatcher(dispatch: (a: Visit) => void) {
     }
 
     let {pathname, search, hash} = tag;
-    dispatch(visit({pathname, search, hash}));
+
+    let basePath = inferBasePath();
+    if (pathname.slice(0, basePath.length) == basePath) {
+      pathname = "/" + pathname.slice(basePath.length);
+    }
+
+    dispatch(linkClick({pathname, search, hash}));
     event.preventDefault();
-  })
+  });
 }
