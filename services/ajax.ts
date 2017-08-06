@@ -88,15 +88,15 @@ export function withAjax(queueSize = 6) {
 
               if (existing) {
                 existing.abort();
-
-                let idx = xhrQueue.indexOf(existing);
-                if (idx !== -1) {
-                  xhrQueue.splice(idx, 1);
-                  configsQueue.splice(idx, 1);
-                }
-
                 delete requests[normalizedName];
               }
+
+              let idx = xhrQueue.indexOf(existing);
+              if (idx !== -1) {
+                xhrQueue.splice(idx, 1);
+                configsQueue.splice(idx, 1);
+              }
+
               break;
 
             case "request-ajax":
