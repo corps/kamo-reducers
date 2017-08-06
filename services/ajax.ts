@@ -78,6 +78,18 @@ export function withAjax(queueSize = 6) {
           canceled = true;
         });
 
+        const checkAndExecuteNext = () => {
+          if (canceled) return;
+
+          while (executingCount < queueSize && xhrQueue.length) {
+            let nextXhr = xhrQueue.shift();
+            let nextConfig = configsQueue.shift();
+
+            executingCount++;
+            executeXhrWithConfig(nextConfig, nextXhr);
+          }
+        }
+
         subscription.add(effect$.subscribe((effect: RequestAjax | AbortRequest | IgnoredSideEffect) => {
           let normalizedName: string;
 
@@ -88,6 +100,7 @@ export function withAjax(queueSize = 6) {
 
               if (existing) {
                 existing.abort();
+                executingCount -= 1;
                 delete requests[normalizedName];
               }
 
@@ -96,6 +109,8 @@ export function withAjax(queueSize = 6) {
                 xhrQueue.splice(idx, 1);
                 configsQueue.splice(idx, 1);
               }
+
+              checkAndExecuteNext();
 
               break;
 
@@ -117,13 +132,7 @@ export function withAjax(queueSize = 6) {
 
                 if (canceled) return;
 
-                if (executingCount < queueSize && xhrQueue.length) {
-                  let nextXhr = xhrQueue.shift();
-                  let nextConfig = configsQueue.shift();
-
-                  executingCount++;
-                  executeXhrWithConfig(nextConfig, nextXhr);
-                }
+                checkAndExecuteNext();
               }
 
               xhr.onerror = function () {
