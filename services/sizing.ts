@@ -112,14 +112,15 @@ function copyComputedStyles(from: HTMLElement, to: HTMLElement): void {
   let computedStyleObject = document.defaultView.getComputedStyle(from, null);
   if (!computedStyleObject) return null;
 
-  let stylePropertyValid = function (value: any, prop: string) {
+  const stylePropertyValid = function (value: any, prop: string) {
     return typeof value !== 'undefined' &&
       prop !== "length" &&
       typeof value !== 'object' &&
       typeof value !== 'function';
   };
 
-  for (let property in computedStyleObject) {
+  for (let i = 0; i < computedStyleObject.length; i++) {
+    let property = computedStyleObject[i] as any;
     if (stylePropertyValid(computedStyleObject[property], property)) {
       to.style[property] = computedStyleObject[property];
     }
