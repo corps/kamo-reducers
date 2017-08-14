@@ -91,6 +91,7 @@ export function withDebounce(effect$: Subject<SideEffect>): Subscriber<GlobalAct
 
       subscription.add(function () {
         for (let k in timeouts) {
+          if (!timeouts[k]) continue;
           clearTimeout(timeouts[k].handle);
         }
       });
