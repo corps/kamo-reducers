@@ -1,85 +1,38 @@
-import {GlobalAction, ReductionWithEffect, SideEffect} from "../reducers";
-import {sequence} from "../services/sequence";
-import {clearDebounce, debounce} from "../services/debounce";
+import {ReductionWithEffect} from "../reducers";
 
 export interface InputChange<T> {
   type: 'input-change',
   target: keyof T,
-  debounceName: string,
-  debounceAction: GlobalAction,
-  text: string
+  value: string
 }
 
-export interface ApplyInputChange<T> {
-  type: 'apply-input-change',
-  target: keyof T,
-  text: string,
-  debounceName: string,
-}
-
-export type InputAction<T> = InputChange<T> | ApplyInputChange<T>;
-
-export function applyInputChange<T>(target: keyof T, text: string): ApplyInputChange<T> {
-  return {type: "apply-input-change", target, text, debounceName: "input-change-" + target};
-}
-
-export function inputChange<T>(target: keyof T, text: string): InputChange<T> {
+export function inputChange<T>(target: keyof T, value: string): InputChange<T> {
   return {
     type: "input-change",
     target,
-    text,
-    debounceName: "input-change-" + target,
-    debounceAction: applyInputChange<T>(target, text),
+    value
   };
 }
 
-export function inputChangeDispatcher<T>(dispatch: (a: InputAction<T>) => void,
-                                         target: keyof T,
-                                         lastValue = "",
-                                         dispatchApplyOnNewOrClearInput = false) {
+export function inputChangeDispatcher<T, S = string>(dispatch: (a: InputChange<T>) => void,
+                                                     target: keyof T, value?: S) {
   return (e: { stopPropagation: () => void, target: any }) => {
     e.stopPropagation();
-
-    let wasEmpty = !lastValue;
-    lastValue = (e.target as HTMLInputElement).value;
-    if (dispatchApplyOnNewOrClearInput && (wasEmpty && lastValue || !wasEmpty && !lastValue)) {
-      dispatch(applyInputChange<T>(target, lastValue));
-    }
-    else {
-      dispatch(inputChange<T>(target, lastValue));
-    }
-  }
-}
-
-export function applyInputChangeDispatcher<T>(dispatch: (a: ApplyInputChange<T>) => void,
-                                              target: keyof T,
-                                              ...value: string[]) {
-  return (e: { stopPropagation: () => void, target: any }) => {
-    e.stopPropagation();
-    dispatch(applyInputChange<T>(target,
-      value.length ? value[0] : (e.target as HTMLInputElement).value));
+    dispatch(inputChange<T>(target, value === undefined ? e.target.value : value));
   }
 }
 
 export interface InputMap {
-  [k: string]: string
+  [k: string]: { value: string }
 }
 
-export function reduceInputs<T extends InputMap>(state: InputMap, a: InputAction<T>): ReductionWithEffect<T> {
-  let effect: SideEffect | 0 = null;
+export function reduceInputs<T extends InputMap>(state: InputMap, a: InputChange<T>): ReductionWithEffect<T> {
   switch (a.type) {
     case 'input-change':
-      effect = sequence(effect, debounce(a.debounceAction, a.debounceName));
-      break;
-
-    case 'apply-input-change':
-      effect = sequence(effect, clearDebounce(a.debounceName));
-      if (state[a.target] === a.text) break;
-
       state = {...state};
-      state[a.target] = a.text;
+      state[a.target] = { value: a.value };
       break;
   }
 
-  return {state: state as T, effect};
+  return {state: state as T};
 }

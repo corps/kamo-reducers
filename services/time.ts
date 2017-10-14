@@ -28,7 +28,7 @@ export function updateTime(absoluteTime: number, relativeTime: number): UpdateTi
 }
 
 export function reduceTime<T extends TimeState>(state: T, action: UpdateTime | IgnoredAction): ReductionWithEffect<T> {
-  let effect: SideEffect | 0 = null;
+  let effect: SideEffect | void = null;
 
   switch (action.type) {
     case "update-time":

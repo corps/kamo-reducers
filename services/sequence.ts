@@ -24,7 +24,7 @@ export function withSequenced(effect$: Subject<SideEffect>): Subscriber<GlobalAc
   }
 }
 
-export function sequence(first: SideEffect | 0, next: SideEffect | 0): SideEffect {
+export function sequence(first: SideEffect | void, next: SideEffect | void): SideEffect {
   if (!first) return next as SideEffect;
   if (!next) return first as SideEffect;
 
@@ -36,7 +36,7 @@ export function sequence(first: SideEffect | 0, next: SideEffect | 0): SideEffec
 }
 
 
-export function sequenceReduction<State>(effect: SideEffect | 0, reduction: ReductionWithEffect<State>): ReductionWithEffect<State> {
+export function sequenceReduction<State>(effect: SideEffect | void, reduction: ReductionWithEffect<State>): ReductionWithEffect<State> {
   effect = sequence(effect, reduction.effect);
 
   return {state: reduction.state, effect};

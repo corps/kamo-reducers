@@ -128,7 +128,7 @@ export type NavigationAction = Visit | LinkClick;
 export function navigationReducer<State extends Object>(route: (state: State,
                                                                 pathLocation: PathLocation) => ReductionWithEffect<State>) {
   return (state: State, action: NavigationAction): ReductionWithEffect<State> => {
-    let effect: SideEffect | 0 = null;
+    let effect: SideEffect | void = null;
 
     switch (action.type) {
       case 'visit':

@@ -1,34 +1,22 @@
 
 declare module "kamo-reducers/reducers/inputs" {
-import { GlobalAction, ReductionWithEffect } from "kamo-reducers/reducers";
+import { ReductionWithEffect } from "kamo-reducers/reducers";
 export interface InputChange<T> {
     type: 'input-change';
     target: keyof T;
-    debounceName: string;
-    debounceAction: GlobalAction;
-    text: string;
+    value: string;
 }
-export interface ApplyInputChange<T> {
-    type: 'apply-input-change';
-    target: keyof T;
-    text: string;
-    debounceName: string;
-}
-export  type InputAction<T> = InputChange<T> | ApplyInputChange<T>;
-export  function applyInputChange<T>(target: keyof T, text: string): ApplyInputChange<T>;
-export  function inputChange<T>(target: keyof T, text: string): InputChange<T>;
-export  function inputChangeDispatcher<T>(dispatch: (a: InputAction<T>) => void, target: keyof T, lastValue?: string, dispatchApplyOnNewOrClearInput?: boolean): (e: {
-    stopPropagation: () => void;
-    target: any;
-}) => void;
-export  function applyInputChangeDispatcher<T>(dispatch: (a: ApplyInputChange<T>) => void, target: keyof T, ...value: string[]): (e: {
+export  function inputChange<T>(target: keyof T, value: string): InputChange<T>;
+export  function inputChangeDispatcher<T, S = string>(dispatch: (a: InputChange<T>) => void, target: keyof T, value?: S): (e: {
     stopPropagation: () => void;
     target: any;
 }) => void;
 export interface InputMap {
-    [k: string]: string;
+    [k: string]: {
+        value: string;
+    };
 }
-export  function reduceInputs<T extends InputMap>(state: InputMap, a: InputAction<T>): ReductionWithEffect<T>;
+export  function reduceInputs<T extends InputMap>(state: InputMap, a: InputChange<T>): ReductionWithEffect<T>;
 }
 declare module "kamo-reducers/reducers/toggle" {
 import { ReductionWithEffect } from "kamo-reducers/reducers";
@@ -151,6 +139,21 @@ export  function clearDebounce(name: string): ClearDebounce;
 export  function debounce(action: GlobalAction, name: string, debounceMs?: number): Debounce;
 export  function withDebounce(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
 }
+declare module "kamo-reducers/services/input-debouncing" {
+import { GlobalAction, SideEffect } from "kamo-reducers/reducers";
+import { Subject, Subscriber } from "kamo-reducers/subject";
+export  const clearInputDebouncingEventName = "clear-input-debouncing";
+export  const flushInputDebouncingEventName = "flush-input-debouncing";
+export interface ClearInputDebouncing {
+    effectType: "clear-input-debouncing";
+}
+export interface FlushInputDebouncing {
+    effectType: "flush-input-debouncing";
+}
+export  function clearInputDebouncing(): ClearInputDebouncing;
+export  function flushInputDebouncing(): FlushInputDebouncing;
+export  function withInputDebouncing(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
+}
 declare module "kamo-reducers/services/local-storage" {
 export interface StoreLocalData {
     effectType: "store-local-data";
@@ -271,8 +274,8 @@ export interface Sequenced {
     effects: SideEffect[];
 }
 export  function withSequenced(effect$: Subject<SideEffect>): Subscriber<GlobalAction>;
-export  function sequence(first: SideEffect | 0, next: SideEffect | 0): SideEffect;
-export  function sequenceReduction<State>(effect: SideEffect | 0, reduction: ReductionWithEffect<State>): ReductionWithEffect<State>;
+export  function sequence(first: SideEffect | void, next: SideEffect | void): SideEffect;
+export  function sequenceReduction<State>(effect: SideEffect | void, reduction: ReductionWithEffect<State>): ReductionWithEffect<State>;
 }
 declare module "kamo-reducers/services/sizing" {
 import { GlobalAction, ReductionWithEffect, SideEffect } from "kamo-reducers/reducers";
@@ -407,7 +410,7 @@ export  type SideEffect = {
 };
 export  type ReductionWithEffect<State extends Object> = {
     state: State;
-    effect?: SideEffect | 0;
+    effect?: SideEffect | void;
 };
 export  type Reducer<State> = (state: State, action: GlobalAction) => ReductionWithEffect<State>;
 export  type IgnoredSideEffect = {
@@ -416,7 +419,7 @@ export  type IgnoredSideEffect = {
 export  type IgnoredAction = {
     type: '';
 };
-export  type Renderer<State, Action extends GlobalAction> = (state: State | 0, dispatchAction: (a: Action) => void, next: () => void) => void;
+export  type Renderer<State, Action extends GlobalAction> = (state: State | void, dispatchAction: (a: Action) => void, next: () => void) => void;
 export  type Service = (sideEffect$: Subject<SideEffect>) => Subscriber<GlobalAction>;
 export  function isSideEffect(ae: SideEffect | GlobalAction): ae is SideEffect;
 export  type RenderUpdate<State, Action extends GlobalAction> = ["a", Action] | ["s", State] | ["e", SideEffect] | ["r"] | ["c"];
@@ -425,11 +428,11 @@ export  function serviceOutputs(effect$: Subscriber<SideEffect>, services: Servi
 export interface ReducerChain<S> {
     result: () => {
         state: S;
-        effect: SideEffect | 0;
+        effect: SideEffect | void;
     };
     apply: (reducer: Reducer<S>) => ReducerChain<S>;
 }
-export  function reducerChain<State>(state: State, action: GlobalAction, effect?: SideEffect | 0): ReducerChain<State>;
+export  function reducerChain<State>(state: State, action: GlobalAction, effect?: SideEffect | void): ReducerChain<State>;
 export  function subReducersFor<State>(): <Key extends keyof State>(key: Key, reducer: Reducer<State[Key]>) => Reducer<State>;
 export  function computedFor<State>(): <Key extends keyof State>(key: Key, compute: (s: State) => State[Key]) => Reducer<State>;
 }

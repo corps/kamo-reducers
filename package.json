@@ -1,11 +1,20 @@
 {
   "name": "kamo-reducers",
-  "version": "1.12.2",
+  "version": "1.2.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "tsc && karma start karma.conf.js"
   },
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "karma": "^1.7.1",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-qunit": "^1.2.1",
+    "karma-webpack": "^2.0.5",
+    "qunitjs": "^2.4.0",
+    "typescript": "^2.5.3",
+    "webpack": "^3.7.1"
+  }
 }

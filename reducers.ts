@@ -2,13 +2,13 @@ import {BufferedSubject, Subject, Subscriber, Subscription} from "./subject";
 import {sequence} from "./services/sequence";
 export type GlobalAction = { type: string };
 export type SideEffect = { effectType: string };
-export type ReductionWithEffect<State extends Object> = { state: State, effect?: SideEffect | 0 };
+export type ReductionWithEffect<State extends Object> = { state: State, effect?: SideEffect | void };
 export type Reducer <State> = (state: State, action: GlobalAction) => ReductionWithEffect<State>
 export type IgnoredSideEffect = { effectType: '' };
 export type IgnoredAction = { type: '' };
 
 export type Renderer<State, Action extends GlobalAction> =
-  (state: State | 0, dispatchAction: (a: Action) => void, next: () => void) => void;
+  (state: State | void, dispatchAction: (a: Action) => void, next: () => void) => void;
 
 export type Service = (sideEffect$: Subject<SideEffect>) => Subscriber<GlobalAction>;
 
@@ -109,12 +109,12 @@ export function serviceOutputs(effect$: Subscriber<SideEffect>,
 }
 
 export interface ReducerChain<S> {
-  result: () => { state: S, effect: SideEffect | 0 }
+  result: () => { state: S, effect: SideEffect | void }
   apply: (reducer: Reducer<S>) => ReducerChain<S>
 }
 
 export function reducerChain<State>(state: State, action: GlobalAction,
-                                    effect: SideEffect | 0 = null): ReducerChain<State> {
+                                    effect: SideEffect | void = null): ReducerChain<State> {
   const chainer: ReducerChain<State> = {
     apply: (reducer: Reducer<State>) => {
       let reduction = reducer(state, action);
