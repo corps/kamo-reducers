@@ -5,7 +5,8 @@ export interface AjaxConfig {
   method: "POST" | "GET" | "PUT" | "DELETE" | "PATCH";
   json?: Object;
   query?: {[k: string]: string | number};
-  body?: string;
+  body?: string | Blob | ArrayBuffer;
+  responseType?: "arraybuffer" | "blob" | "json" | "text" | void;
   headers?: {[k: string]: string};
   overrideMimeType?: string;
 }
@@ -43,7 +44,7 @@ export interface CompleteRequest {
   name: string[];
   success: boolean;
   status: number;
-  response: string;
+  response: string | Blob | ArrayBuffer;
   headers: string;
   when: number;
 }
@@ -51,7 +52,7 @@ export interface CompleteRequest {
 export function completeRequest(
   requestEffect: RequestAjax,
   status: number,
-  response: string,
+  response: string | Blob | ArrayBuffer,
   headers: string,
   when = Date.now()
 ): CompleteRequest {
@@ -122,7 +123,7 @@ export function withAjax(queueSize = 6) {
                       completeRequest(
                         effect,
                         xhr.status,
-                        xhr.responseText,
+                        xhr.response,
                         xhr.getAllResponseHeaders()
                       )
                     );
@@ -163,6 +164,10 @@ export function executeXhrWithConfig(config: AjaxConfig, xhr: XMLHttpRequest) {
     xhr.overrideMimeType(config.overrideMimeType);
   }
 
+  if (config.responseType) {
+    xhr.responseType = config.responseType;
+  }
+
   xhr.open(config.method, getAjaxUrl(config), true);
 
   const headers = config.headers;
@@ -194,7 +199,7 @@ export function getAjaxUrl(config: AjaxConfig): string {
   return url;
 }
 
-export function getAjaxBody(config: AjaxConfig): string {
+export function getAjaxBody(config: AjaxConfig): string | Blob | ArrayBuffer {
   if (config.body) return config.body;
   if (config.json) return JSON.stringify(config.json);
   return null;
